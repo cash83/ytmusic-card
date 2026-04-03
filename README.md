@@ -2,7 +2,11 @@
 
 A collection of cards was design to enhance the features of the [YTube_Media_Player integration](https://github.com/KoljaWindeler/ytube_music_player) and the [Mini Media Player](https://github.com/kalkih/mini-media-player)
 
-[Demo](https://github.com/pathofleastresistor/polr-ytube-media-card/assets/91756648/3fae5ef4-8dcd-40c5-83d7-f7c5862f9b32)
+<img width="398" height="563" alt="image" src="https://github.com/user-attachments/assets/c8ade858-927f-4cc4-a505-700388d2b1e5" />
+<img width="408" height="574" alt="image" src="https://github.com/user-attachments/assets/7785879b-c84b-49f2-bf43-c2fc490394b4" />
+
+
+
 
 ## Installation
 
@@ -37,4 +41,6 @@ entity_id: media_player.youtube_living_room_display
 header: YouTube Music
 ```
 
-<img src="img/polr-ytube-playing-card.png" height="400" />
+
+<img width="398" height="563" alt="image" src="https://github.com/user-attachments/assets/deda6f79-7a92-47c2-bdb3-ad419bbb8f10" />
+
