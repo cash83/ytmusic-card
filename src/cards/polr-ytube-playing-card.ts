@@ -13,15 +13,37 @@ import { areDeeplyEqual, PoLRYTubeItem } from "../utils/utils";
 import { CastAudioIcon, PlayIcon, PauseIcon, SkipNextIcon } from "../utils/icons";
 
 // source: where to look for this item ("root" = root browse children, "home" = Home section children)
-// titleKey: case-insensitive partial match against item.title
-const YT_FILTERS = [
-    { label: "Per te",          source: "root", titleKey: "home" },
-    { label: "Scelte rapide",   source: "home", titleKey: "scelte" },
-    { label: "Dalla community", source: "home", titleKey: "community" },
-    { label: "Radio per te",    source: "home", titleKey: "radio" },
-    { label: "Playlist",        source: "root", titleKey: "playlist" },
-    { label: "Recenti",         source: "root", titleKey: "last played" },
-];
+// titleKey: case-insensitive partial match against item.title (must match the YouTube Music API language)
+const YT_FILTERS_LABELS: Record<string, string[]> = {
+    it: ["Per te", "Scelte rapide", "Dalla community", "Radio per te", "Playlist", "Recenti"],
+    en: ["For You", "Quick picks", "From the community", "Radio for you", "Playlists", "Recent"],
+};
+
+const YT_SEARCH_PLACEHOLDER: Record<string, string> = {
+    it: "Brani, album, artisti...",
+    en: "Songs, albums, artists...",
+};
+
+function getUILang(): string {
+    const lang = (navigator.language || "en").toLowerCase();
+    if (lang.startsWith("it")) return "it";
+    return "en";
+}
+
+function getYTFilters() {
+    const lang = getUILang();
+    const labels = YT_FILTERS_LABELS[lang] ?? YT_FILTERS_LABELS["en"];
+    return [
+        { label: labels[0], source: "root", titleKey: "home" },
+        { label: labels[1], source: "home", titleKey: "scelte" },
+        { label: labels[2], source: "home", titleKey: "community" },
+        { label: labels[3], source: "home", titleKey: "radio" },
+        { label: labels[4], source: "root", titleKey: "playlist" },
+        { label: labels[5], source: "root", titleKey: "last played" },
+    ];
+}
+
+const YT_FILTERS = getYTFilters();
 
 const YTLogoSVG = html`
     <svg viewBox="0 0 24 24" class="yt-icon" xmlns="http://www.w3.org/2000/svg">
@@ -57,7 +79,7 @@ export class PoLRYTubePlayingCard extends LitElement {
         if (!("header" in this._config)) this._config.header = "YouTube Music";
         if (!("initialAction" in this._config)) {
             this._config.initialAction = new PoLRYTubeItem();
-            this._config.initialAction.title = "Per te";
+            this._config.initialAction.title = YT_FILTERS_LABELS[getUILang()][0];
             this._config.initialAction.media_content_type = null;
             this._config.initialAction.media_content_id = null;
         }
@@ -192,7 +214,7 @@ export class PoLRYTubePlayingCard extends LitElement {
                     type="search"
                     class="search-input"
                     id="searchInput"
-                    placeholder="Brani, album, artisti..."
+                    placeholder="${YT_SEARCH_PLACEHOLDER[getUILang()]}"
                     @keyup=${this._handleSearchKey}
                     autofocus
                 />
