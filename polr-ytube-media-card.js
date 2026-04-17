@@ -803,7 +803,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 ${this._renderRepeat()}
             </div>
         `}_renderLikeButton(){var t,e,i;return"likeStatus"in(null===(t=this.entity)||void 0===t?void 0:t.attributes)?B`
-            <button class="icon-btn" @click=${()=>this._likeSong()}>
+            <button class="icon-btn ${"LIKE"==(null===(i=null===(e=this.entity)||void 0===e?void 0:e.attributes)||void 0===i?void 0:i.likeStatus)?'active':''}" @click=${()=>this._likeSong()}>
                 ${"LIKE"==(null===(i=null===(e=this.entity)||void 0===e?void 0:e.attributes)||void 0===i?void 0:i.likeStatus)?kt:Ct}
             </button>
         `:B``}_renderNext(){return B`
@@ -834,15 +834,15 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
             <button class="icon-btn" @click=${this._startRadio}>
                 ${ft}
             </button>
-        `}_renderRepeat(){return B`
-            <button class="icon-btn" @click=${this._changeRepeat}>
+        `}_renderRepeat(){const _ra=void 0!==this._repeatActive?this._repeatActive:!!(this.entity?.attributes?.repeat&&"off"!==this.entity?.attributes?.repeat);return B`
+            <button class="icon-btn ${_ra?'active':''}" @click=${this._changeRepeat}>
                 ${bt}
             </button>
-        `}_renderShuffle(){return B`
-            <button class="icon-btn" @click=${this._shuffleList}>
+        `}_renderShuffle(){const _sa=void 0!==this._shuffleActive?this._shuffleActive:!!this.entity?.attributes?.shuffle;return B`
+            <button class="icon-btn ${_sa?'active':''}" @click=${this._shuffleList}>
                 ${xt}
             </button>
-        `}async _changeRepeat(){var t,e;let i;switch(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.repeat){case"off":i="one";break;case"one":i="all";break;case"all":i="off"}this.hass.callService("media_player","repeat_set",{entity_id:this.entity.entity_id,repeat:i})}async _changeVolume(){this.hass.callService("media_player","volume_set",{entity_id:this.entity.entity_id,volume_level:this.volumeSlider.value/100})}async _likeSong(){var t;await this.hass.callService("ytube_music_player","rate_track",{entity_id:null===(t=this.entity)||void 0===t?void 0:t.entity_id,rating:"thumb_toggle_up_middle"}),this.requestUpdate()}async _seekProgress(){let t=this.renderRoot.querySelector("#progressSlider");this.hass.callService("media_player","media_seek",{entity_id:this.entity.entity_id,seek_position:t.value})}async _shuffleList(){var t,e;const i=null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.shuffle;this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!i})}async _skipNext(){this.hass.callService("media_player","media_next_track",{entity_id:this.entity.entity_id})}async _startRadio(){var t,e;await this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!1}),this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.videoId,media_content_type:"vid_channel"})}async _toggleMute(){var t,e;this.hass.callService("media_player","volume_mute",{entity_id:this.entity.entity_id,is_volume_muted:!(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.is_volume_muted)})}async _trackProgress(){var t,e,i,s,r,n;let o=Date.now(),a=Date.parse(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.media_position_updated_at),l=(null===(s=null===(i=this.entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.media_position)+(o-a)/1e3;null!=this.progressSlider&&null!=(null===(n=null===(r=this.entity)||void 0===r?void 0:r.attributes)||void 0===n?void 0:n.media_position)&&(this.progressSlider.value=Math.round(l),this.progressTime=ut(l)),this.tracker||(this.tracker=setInterval((()=>this._trackProgress()),1e3))}async _skipPrevious(){this.hass.callService("media_player","media_previous_track",{entity_id:this.entity.entity_id})}async _togglePlayPause(){this.hass.callService("media_player","media_play_pause",{entity_id:this.entity.entity_id})}static get styles(){return[o`
+        `}async _changeRepeat(){var t,e;let i;switch(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.repeat){case"off":i="one";break;case"one":i="all";break;case"all":i="off"}this._repeatActive="off"!==i;this.hass.callService("media_player","repeat_set",{entity_id:this.entity.entity_id,repeat:i}),this.requestUpdate()}async _changeVolume(){this.hass.callService("media_player","volume_set",{entity_id:this.entity.entity_id,volume_level:this.volumeSlider.value/100})}async _likeSong(){var t;await this.hass.callService("ytube_music_player","rate_track",{entity_id:null===(t=this.entity)||void 0===t?void 0:t.entity_id,rating:"thumb_toggle_up_middle"}),this.requestUpdate()}async _seekProgress(){let t=this.renderRoot.querySelector("#progressSlider");this.hass.callService("media_player","media_seek",{entity_id:this.entity.entity_id,seek_position:t.value})}async _shuffleList(){var t,e;const i=null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.shuffle;this._shuffleActive=!i;this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!i}),this.requestUpdate()}async _skipNext(){this.hass.callService("media_player","media_next_track",{entity_id:this.entity.entity_id})}async _startRadio(){var t,e;await this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!1}),this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.videoId,media_content_type:"vid_channel"})}async _toggleMute(){var t,e;this.hass.callService("media_player","volume_mute",{entity_id:this.entity.entity_id,is_volume_muted:!(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.is_volume_muted)})}async _trackProgress(){var t,e,i,s,r,n;let o=Date.now(),a=Date.parse(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.media_position_updated_at),l=(null===(s=null===(i=this.entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.media_position)+(o-a)/1e3;null!=this.progressSlider&&null!=(null===(n=null===(r=this.entity)||void 0===r?void 0:r.attributes)||void 0===n?void 0:n.media_position)&&(this.progressSlider.value=Math.round(l),this.progressTime=ut(l)),this.tracker||(this.tracker=setInterval((()=>this._trackProgress()),1e3))}async _skipPrevious(){this.hass.callService("media_player","media_previous_track",{entity_id:this.entity.entity_id})}async _togglePlayPause(){this.hass.callService("media_player","media_play_pause",{entity_id:this.entity.entity_id})}static get styles(){return[o`
                 :host {
                     display: grid;
                     gap: 4px;
@@ -862,6 +862,11 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
 
                 .icon-btn:hover {
                     background: rgba(var(--rgb-primary-text-color), 0.08);
+                }
+
+                .icon-btn.active {
+                    background: rgba(229, 57, 53, 0.2);
+                    color: #e53935;
                 }
 
                 .icon-btn svg {
