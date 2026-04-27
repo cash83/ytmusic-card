@@ -14,7 +14,7 @@ A collection of cards designed to enhance the features of the [YTube_Media_Playe
 
 1. Open the HACS section of Home Assistant.
 2. Click the "..." button in the top right corner and select "Custom Repositories."
-3. In the window that opens paste this Github URL ([https://github.com/cash83/polr-ytube-media-card]).
+3. In the window that opens paste this Github URL ([https://github.com/cash83/ytmusic-card]).
 4. Select "Lovelace"
 5. In the window that opens when you select it click om "Install This Repository in HACS"
 
