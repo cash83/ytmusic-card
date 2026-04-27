@@ -51,6 +51,7 @@ export class PoLRYTubeSearch extends LitElement {
                         <option value="all">All</option>
                         <option value="artists">Artists</option>
                         <option value="songs" selected>Songs</option>
+                        <option value="albums">Albums</option>
                         <option value="playlists">Playlists</option>
                     </select>
                 </div>
