@@ -2,8 +2,8 @@
 
 A collection of cards designed to enhance the features of the [YTube_Media_Player integration](https://github.com/KoljaWindeler/ytube_music_player) and the [Mini Media Player](https://github.com/kalkih/mini-media-player)
 
-![YTMusic Card](img/ytmusic-browse.png)
-![YTMusic Queue](img/ytmusic-queue.png)
+![YTMusic Card](https://raw.githubusercontent.com/cash83/ytmusic-card/main/img/ytmusic-browse.png)
+![YTMusic Queue](https://raw.githubusercontent.com/cash83/ytmusic-card/main/img/ytmusic-queue.png)
 
 
 
@@ -41,7 +41,7 @@ entity_id: media_player.youtube_living_room_display
 header: YouTube Music
 ```
 
-![YTMusic Playing Card](img/ytmusic-playlist.png)
+![YTMusic Playing Card](https://raw.githubusercontent.com/cash83/ytmusic-card/main/img/ytmusic-playlist.png)
 
 ## YTMusic-Search-Card
 
