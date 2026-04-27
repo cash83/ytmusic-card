@@ -3,7 +3,7 @@ import { TextFieldBase } from "@material/mwc-textfield/mwc-textfield-base";
 import { styles } from "@material/mwc-textfield/mwc-textfield.css";
 import { customElement, property } from "lit/decorators.js";
 
-@customElement("polr-textfield")
+@customElement("ytmusic-textfield")
 export class PoLRTextfield extends TextFieldBase {
     // @ts-ignore
     @property({ type: Boolean }) public icon?: boolean;
@@ -41,6 +41,6 @@ export class PoLRTextfield extends TextFieldBase {
 
 declare global {
     interface HTMLElementTagNameMap {
-        "polr-textfield": PoLRTextfield;
+        "ytmusic-textfield": PoLRTextfield;
     }
 }

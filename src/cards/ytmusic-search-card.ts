@@ -1,15 +1,15 @@
 import { LitElement, html, css, CSSResultGroup } from "lit";
 import { property, state } from "lit/decorators.js";
-import "../elements/polr-ytube-search";
+import "../elements/ytmusic-search";
 
-export class PoLRYTubeSearchCard extends LitElement {
+export class YTMusicSearchCard extends LitElement {
     @property() _config: any = {};
     @property() _hass: any;
     @state() _entity: any;
     @state() _runOnce: boolean = false;
 
     static getConfigElement() {
-        // return document.createElement("polr-ytube-search-card-editor");
+        // return document.createElement("ytmusic-search-card-editor");
     }
 
     static getStubConfig() {
@@ -56,10 +56,10 @@ export class PoLRYTubeSearchCard extends LitElement {
             <ha-card>
                 ${header}
                 <div class="content">
-                    <polr-ytube-search
+                    <ytmusic-search
                         ._hass=${this._hass}
                         ._entity=${this._entity}>
-                    </polr-ytube-search>
+                    </ytmusic-search>
                 </div>
             </ha-card>
         `;
@@ -111,12 +111,12 @@ export class PoLRYTubeSearchCard extends LitElement {
     `;
 }
 
-customElements.define("polr-ytube-search-card", PoLRYTubeSearchCard);
+customElements.define("ytmusic-search-card", YTMusicSearchCard);
 
 // This puts your card into the UI card picker dialog
 (window as any).customCards = (window as any).customCards || [];
 (window as any).customCards.push({
-    type: "polr-ytube-search-card",
-    name: "PoLR YouTube Search",
+    type: "ytmusic-search-card",
+    name: "YTMusic Search",
     description: "Requires the ytube_media_player integration",
 });

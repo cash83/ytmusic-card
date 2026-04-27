@@ -3,10 +3,10 @@ import { html } from "lit";
 import { customElement, query } from "lit/decorators.js";
 import { TabBarBase } from "@material/mwc-tab-bar/mwc-tab-bar-base";
 import { styles } from "@material/mwc-tab-bar/mwc-tab-bar.css";
-import "./polr-tab-scroller";
+import "./ytmusic-tab-scroller";
 
-@customElement("polr-tab-bar")
-export class PoLRTabBar extends TabBarBase {
+@customElement("ytmusic-tab-bar")
+export class YTMusicTabBar extends TabBarBase {
     override render() {
         return html`
             <div
@@ -14,7 +14,7 @@ export class PoLRTabBar extends TabBarBase {
                 role="tablist"
                 @MDCTab:interacted="${this._handleTabInteraction}"
                 @keydown="${this._handleKeydown}">
-                <polr-tab-scroller><slot></slot></polr-tab-scroller>
+                <ytmusic-tab-scroller><slot></slot></ytmusic-tab-scroller>
             </div>
         `;
     }
@@ -23,12 +23,12 @@ export class PoLRTabBar extends TabBarBase {
 
 declare global {
     interface HTMLElementTagNameMap {
-        "polr-tab-bar": PoLRTabBar;
+        "ytmusic-tab-bar": YTMusicTabBar;
     }
 }
 
 __decorate(
-    [query("polr-tab-scroller")],
+    [query("ytmusic-tab-scroller")],
     TabBarBase.prototype,
     "scrollerElement",
     void 0

@@ -9,21 +9,21 @@ import {
 import { customElement, property, state } from "lit/decorators.js";
 import { join } from "lit/directives/join.js";
 import { map } from "lit/directives/map.js";
-import { PoLRYTubeList } from "./polr-ytube-list";
-import { PoLRYTubeItem, PoLRYTubeListState } from "../utils/utils";
+import { YTMusicList } from "./ytmusic-list";
+import { YTMusicItem, YTMusicListState } from "../utils/utils";
 import { ArrowLeftIcon, CloseIcon } from "../utils/icons";
 
-@customElement("polr-ytube-browser")
-export class PoLRYTubeBrowser extends LitElement {
+@customElement("ytmusic-browser")
+export class YTMusicBrowser extends LitElement {
     @state() public entity: any;
     @state() public hass: any;
-    @property() public initialAction: PoLRYTubeItem;
+    @property() public initialAction: YTMusicItem;
     @property() public coverNavigation: boolean;
     @property({ type: Boolean }) public hideSearch: boolean = false;
-    @state() public initialElements: PoLRYTubeItem;
-    @state() private _browseHistory: PoLRYTubeItem[] = [];
-    @state() private _previousBrowseHistory: PoLRYTubeItem[] = [];
-    @state() private _polrYTubeList: PoLRYTubeList;
+    @state() public initialElements: YTMusicItem;
+    @state() private _browseHistory: YTMusicItem[] = [];
+    @state() private _previousBrowseHistory: YTMusicItem[] = [];
+    @state() private _polrYTubeList: YTMusicList;
     @state() private _searchTextField: any;
     @state() private _isSearchResults: boolean;
 
@@ -38,7 +38,7 @@ export class PoLRYTubeBrowser extends LitElement {
     }
 
     protected firstUpdated(_changedProperties): void {
-        this._polrYTubeList = this.renderRoot.querySelector("polr-ytube-list");
+        this._polrYTubeList = this.renderRoot.querySelector("ytmusic-list");
         this._searchTextField = this.renderRoot.querySelector("#query");
     }
 
@@ -47,13 +47,13 @@ export class PoLRYTubeBrowser extends LitElement {
             <div class="container">
                 ${this._renderSearch()} ${this._renderNavigation()}
                 ${this._renderPlay()}
-                <polr-ytube-list
+                <ytmusic-list
                     .hass=${this.hass}
                     .entity=${this.entity}
                     @navigate=${(ev) => this._browse(ev.detail.action)}
                     .grid=${this.coverNavigation}
                     columns=${this.coverNavigation ? "3" : "1"}
-                ></polr-ytube-list>
+                ></ytmusic-list>
             </div>
         `;
     }
@@ -81,7 +81,7 @@ export class PoLRYTubeBrowser extends LitElement {
         `;
     }
 
-    public loadElement(element: PoLRYTubeItem) {
+    public loadElement(element: YTMusicItem) {
         this._browseHistory = [];
         this._isSearchResults = false;
         this._browse(element);
@@ -98,13 +98,13 @@ export class PoLRYTubeBrowser extends LitElement {
         this._fetchSearchResults();
     }
 
-    async _browse(element: PoLRYTubeItem) {
-        this._polrYTubeList.state = PoLRYTubeListState.LOADING;
+    async _browse(element: YTMusicItem) {
+        this._polrYTubeList.state = YTMusicListState.LOADING;
         this._browseHistory.push(element);
 
         if (element.children?.length > 0) {
             this._polrYTubeList.elements = element["children"];
-            this._polrYTubeList.state = PoLRYTubeListState.HAS_RESULTS;
+            this._polrYTubeList.state = YTMusicListState.HAS_RESULTS;
         } else {
             try {
                 const wsParams: any = {
@@ -116,9 +116,9 @@ export class PoLRYTubeBrowser extends LitElement {
                 const response = await this.hass.callWS(wsParams);
 
                 this._polrYTubeList.elements = response["children"];
-                this._polrYTubeList.state = PoLRYTubeListState.HAS_RESULTS;
+                this._polrYTubeList.state = YTMusicListState.HAS_RESULTS;
             } catch (e) {
-                this._polrYTubeList.state = PoLRYTubeListState.ERROR;
+                this._polrYTubeList.state = YTMusicListState.ERROR;
                 console.error(
                     e,
                     element.media_content_type,
@@ -130,7 +130,7 @@ export class PoLRYTubeBrowser extends LitElement {
     }
 
     async _fetchSearchResults() {
-        this._polrYTubeList.state = PoLRYTubeListState.LOADING;
+        this._polrYTubeList.state = YTMusicListState.LOADING;
 
         try {
             let response = await this.hass.callWS({
@@ -153,9 +153,9 @@ export class PoLRYTubeBrowser extends LitElement {
                 this._browse(response);
 
                 this.requestUpdate();
-            } else this._polrYTubeList.state = PoLRYTubeListState.NO_RESULTS;
+            } else this._polrYTubeList.state = YTMusicListState.NO_RESULTS;
         } catch (e) {
-            this._polrYTubeList.state = PoLRYTubeListState.ERROR;
+            this._polrYTubeList.state = YTMusicListState.ERROR;
             console.error(e);
         }
     }
@@ -376,7 +376,7 @@ export class PoLRYTubeBrowser extends LitElement {
                     align-items: center;
                 }
 
-                polr-ytube-list {
+                ytmusic-list {
                     overflow: auto;
                 }
 

@@ -3,8 +3,8 @@ import { SelectBase } from "@material/mwc-select/mwc-select-base";
 import { styles } from "@material/mwc-select/mwc-select.css";
 import { customElement, property } from "lit/decorators.js";
 
-@customElement("polr-select")
-export class PoLRSelect extends SelectBase {
+@customElement("ytmusic-select")
+export class YTMusicSelect extends SelectBase {
     static override styles = [
         styles,
         css`
@@ -30,6 +30,6 @@ export class PoLRSelect extends SelectBase {
 
 declare global {
     interface HTMLElementTagNameMap {
-        "polr-select": PoLRSelect;
+        "ytmusic-select": YTMusicSelect;
     }
 }

@@ -1,59 +1,59 @@
 import { LitElement, html, css, CSSResultGroup } from "lit";
 import { customElement, state, property } from "lit/decorators.js";
-import { isNumeric, PoLRYTubeItem, PoLRYTubeListState } from "../utils/utils";
-import "./polr-ytube-list-item";
-import "./polr-ytube-grid-item";
+import { isNumeric, YTMusicItem, YTMusicListState } from "../utils/utils";
+import "./ytmusic-list-item";
+import "./ytmusic-grid-item";
 
-@customElement("polr-ytube-list")
-export class PoLRYTubeList extends LitElement {
+@customElement("ytmusic-list")
+export class YTMusicList extends LitElement {
     @state() public entity: any;
     @state() public hass: any;
-    @state() public elements: PoLRYTubeItem[];
-    @state() public state: PoLRYTubeListState;
+    @state() public elements: YTMusicItem[];
+    @state() public state: YTMusicListState;
     @property() public columns: Number = 1;
     @property() public grid: Boolean = false;
 
     render() {
-        if (this.state == PoLRYTubeListState.LOADING) {
+        if (this.state == YTMusicListState.LOADING) {
             return html`<div class="loading">Loading...</div>`;
         }
 
-        if (this.state == PoLRYTubeListState.NO_RESULTS) {
+        if (this.state == YTMusicListState.NO_RESULTS) {
             return html`<div class="empty">No results</div>`;
         }
 
-        if (this.state == PoLRYTubeListState.ERROR) {
+        if (this.state == YTMusicListState.ERROR) {
             return html`<div class="error">Unknown Error</div>`;
         }
 
-        if (this.state == PoLRYTubeListState.HAS_RESULTS) {
+        if (this.state == YTMusicListState.HAS_RESULTS) {
             if (this.elements.length == 0) return html``;
 
             let renderedElements;
             if (this.grid) {
                 renderedElements = this.elements.map((element) => {
                     return html`
-                        <polr-ytube-grid-item
+                        <ytmusic-grid-item
                             .hass=${this.hass}
                             .entity=${this.entity}
                             .element=${element}
                             .current=${this._is_current(element)}
                             @navigate=${(ev) =>
                                 this._fireNavigateEvent(ev.detail.action)}
-                        ></polr-ytube-grid-item>
+                        ></ytmusic-grid-item>
                     `;
                 });
             } else {
                 renderedElements = this.elements.map((element) => {
                     return html`
-                        <polr-ytube-list-item
+                        <ytmusic-list-item
                             .hass=${this.hass}
                             .entity=${this.entity}
                             .element=${element}
                             .current=${this._is_current(element)}
                             @navigate=${(ev) =>
                                 this._fireNavigateEvent(ev.detail.action)}
-                        ></polr-ytube-list-item>
+                        ></ytmusic-list-item>
                     `;
                 });
             }
@@ -61,7 +61,7 @@ export class PoLRYTubeList extends LitElement {
             return html`
                 <div
                     class="container"
-                    style="--polr-ytube-list-columns: ${this.columns}"
+                    style="--ytmusic-list-columns: ${this.columns}"
                 >
                     ${renderedElements}
                 </div>
@@ -69,7 +69,7 @@ export class PoLRYTubeList extends LitElement {
         }
     }
 
-    private _is_current(element: PoLRYTubeItem): boolean {
+    private _is_current(element: YTMusicItem): boolean {
         if (this.entity == null) return false;
         if (!isNumeric(element.media_content_id)) return false;
 
@@ -82,7 +82,7 @@ export class PoLRYTubeList extends LitElement {
         return false;
     }
 
-    private async _fireNavigateEvent(element: PoLRYTubeItem) {
+    private async _fireNavigateEvent(element: YTMusicItem) {
         this.dispatchEvent(
             new CustomEvent("navigate", {
                 detail: {
@@ -99,7 +99,7 @@ export class PoLRYTubeList extends LitElement {
                 .container {
                     display: grid;
                     grid-template-columns: repeat(
-                        var(--polr-ytube-list-columns, 1),
+                        var(--ytmusic-list-columns, 1),
                         minmax(0, 1fr)
                     );
                     gap: 8px;

@@ -7,7 +7,7 @@ import {
     PropertyValueMap,
 } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import "../shared/polr-slider";
+import "../shared/ytmusic-slider";
 import { secondsToMMSS } from "../utils/utils";
 import {
     PauseIcon,
@@ -23,8 +23,8 @@ import {
     VolumeHighIcon,
 } from "../utils/icons";
 
-@customElement("polr-media-control")
-export class PoLRMediaControl extends LitElement {
+@customElement("ytmusic-media-control")
+export class YTMusicMediaControl extends LitElement {
     @property() hass: any;
     @property() entity: any;
     volumeSlider: any;
@@ -65,13 +65,13 @@ export class PoLRMediaControl extends LitElement {
                         ? VolumeOffIcon
                         : VolumeHighIcon}
                 </button>
-                <polr-slider
+                <ytmusic-slider
                     id="volume"
                     min="0"
                     max="100"
                     step="1"
                     @change=${this._changeVolume}
-                ></polr-slider>
+                ></ytmusic-slider>
             </div>
             <div class="action-row">
                 ${this._renderLikeButton()} ${this._renderRadioButton()}
@@ -127,13 +127,13 @@ export class PoLRMediaControl extends LitElement {
         return html`
             <div class="time">
                 <span>${this.progressTime}</span>
-                <polr-slider
+                <ytmusic-slider
                     id="progressSlider"
                     min="0"
                     step="1"
                     max=${Math.round(this.entity?.attributes?.media_duration ?? 0)}
                     @change=${this._seekProgress}
-                ></polr-slider>
+                ></ytmusic-slider>
                 <span>${totalTime}</span>
             </div>
         `;

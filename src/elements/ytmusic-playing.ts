@@ -1,26 +1,26 @@
 import { LitElement, html, css, CSSResultGroup, PropertyValueMap } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import "../elements/polr-ytube-list";
-import { PoLRYTubeList } from "../elements/polr-ytube-list";
-import { FetchableMediaContentType, PoLRYTubeListState } from "../utils/utils";
+import "../elements/ytmusic-list";
+import { YTMusicList } from "../elements/ytmusic-list";
+import { FetchableMediaContentType, YTMusicListState } from "../utils/utils";
 
-@customElement("polr-ytube-playing")
-export class PoLRYTubePlaying extends LitElement {
+@customElement("ytmusic-playing")
+export class YTMusicPlaying extends LitElement {
     @state() public _hass: any;
     @state() public _entity: any;
-    @state() private _polrYTubeList: PoLRYTubeList;
+    @state() private _polrYTubeList: YTMusicList;
 
     protected firstUpdated(_changedProperties): void {
-        this._polrYTubeList = this.renderRoot.querySelector("polr-ytube-list");
+        this._polrYTubeList = this.renderRoot.querySelector("ytmusic-list");
         this._getCurrentlyPlayingItems();
     }
 
     render() {
         return html`
-            <polr-ytube-list
+            <ytmusic-list
                 .hass=${this._hass}
                 .entity=${this._entity}
-            ></polr-ytube-list>
+            ></ytmusic-list>
         `;
     }
 
@@ -60,21 +60,21 @@ export class PoLRYTubePlaying extends LitElement {
             }
 
             if (this._entity?.attributes?.media_title == "loading...") {
-                this._polrYTubeList.state = PoLRYTubeListState.LOADING;
+                this._polrYTubeList.state = YTMusicListState.LOADING;
                 return;
             }
 
             if (results?.children?.length > 0) {
                 this._polrYTubeList.elements = results.children;
-                this._polrYTubeList.state = PoLRYTubeListState.HAS_RESULTS;
+                this._polrYTubeList.state = YTMusicListState.HAS_RESULTS;
             } else {
                 //this._polrYTubeList.elements = [];
-                //this._polrYTubeList.state = PoLRYTubeListState.NO_RESULTS;
+                //this._polrYTubeList.state = YTMusicListState.NO_RESULTS;
             }
             this.requestUpdate();
         } catch (e) {
             console.error(e);
-            this._polrYTubeList.state = PoLRYTubeListState.ERROR;
+            this._polrYTubeList.state = YTMusicListState.ERROR;
         }
     }
 

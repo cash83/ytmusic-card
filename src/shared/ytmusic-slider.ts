@@ -1,8 +1,8 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 
-@customElement("polr-slider")
-export class PoLRSlider extends LitElement {
+@customElement("ytmusic-slider")
+export class YTMusicSlider extends LitElement {
     @property({ type: Number }) value: number = 0;
     @property({ type: Number }) min: number = 0;
     @property({ type: Number }) max: number = 100;
@@ -33,6 +33,6 @@ export class PoLRSlider extends LitElement {
 
 declare global {
     interface HTMLElementTagNameMap {
-        "polr-slider": PoLRSlider;
+        "ytmusic-slider": YTMusicSlider;
     }
 }

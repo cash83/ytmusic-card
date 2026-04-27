@@ -2,13 +2,13 @@ import { TabIndicatorBase } from "@material/mwc-tab-indicator/mwc-tab-indicator-
 import { styles } from "@material/mwc-tab-indicator/mwc-tab-indicator.css";
 import { customElement } from "lit/decorators.js";
 
-@customElement("polr-tab-indicator")
-export class PoLRTabIndicator extends TabIndicatorBase {
+@customElement("ytmusic-tab-indicator")
+export class YTMusicTabIndicator extends TabIndicatorBase {
     static override styles = [styles];
 }
 
 declare global {
     interface HTMLElementTagNameMap {
-        "polr-tab-indicator": PoLRTabIndicator;
+        "ytmusic-tab-indicator": YTMusicTabIndicator;
     }
 }

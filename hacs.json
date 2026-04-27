@@ -1,6 +1,6 @@
 {
-    "name": "PoLR YTube Media Card",
-    "filename": "polr-ytube-media-card.js",
+    "name": "YTMusic Card",
+    "filename": "ytmusic-card.js",
     "content_in_root": true,
     "render_readme": true
 }

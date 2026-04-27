@@ -1,4 +1,4 @@
-export class PoLRYTubeItem {
+export class YTMusicItem {
     title: string;
     media_content_id: string;
     media_content_type: string;
@@ -7,10 +7,10 @@ export class PoLRYTubeItem {
     thumbnail: string;
     children_media_class: string;
     media_class: string;
-    children: PoLRYTubeItem[];
+    children: YTMusicItem[];
 }
 
-export const enum PoLRYTubeListState {
+export const enum YTMusicListState {
     CLEAR = 1,
     HAS_RESULTS = 2,
     LOADING = 4,
@@ -18,7 +18,7 @@ export const enum PoLRYTubeListState {
     ERROR = 16,
 }
 
-export const enum PoLRYTubeTab {
+export const enum YTMusicTab {
     CURRENTLY_PLAYING = 0,
     FOR_YOU = 1,
     SEARCH = 2,

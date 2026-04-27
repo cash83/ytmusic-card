@@ -7,14 +7,14 @@ import {
     PropertyValueMap,
 } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { PlayableMediaList, PoLRYTubeItem } from "../utils/utils";
+import { PlayableMediaList, YTMusicItem } from "../utils/utils";
 import { ForwardBurgerIcon, PlayIcon, RadioTowerIcon } from "../utils/icons";
 
-@customElement("polr-ytube-list-item")
-export class PoLRYTubeListItem extends LitElement {
+@customElement("ytmusic-list-item")
+export class YTMusicListItem extends LitElement {
     @state() public entity: any;
     @state() public hass: any;
-    @state() public element: PoLRYTubeItem;
+    @state() public element: YTMusicItem;
     @state() public current: boolean;
     private _primaryAction: any;
     private _actions: any[] = [];
@@ -81,7 +81,7 @@ export class PoLRYTubeListItem extends LitElement {
         return html``;
     }
 
-    private _renderMoreButton(element: PoLRYTubeItem) {
+    private _renderMoreButton(element: YTMusicItem) {
         if (!element["can_expand"]) return html``;
 
         return html`
@@ -97,7 +97,7 @@ export class PoLRYTubeListItem extends LitElement {
         `;
     }
 
-    private _renderPlayButton(element: PoLRYTubeItem) {
+    private _renderPlayButton(element: YTMusicItem) {
         if (!element.can_play) return html``;
         return html`
             <button
@@ -112,7 +112,7 @@ export class PoLRYTubeListItem extends LitElement {
         `;
     }
 
-    private _renderRadioButton(element: PoLRYTubeItem) {
+    private _renderRadioButton(element: YTMusicItem) {
         if (element.media_content_type == "track") {
             const id =
                 element.media_content_type == "track"
@@ -134,7 +134,7 @@ export class PoLRYTubeListItem extends LitElement {
         return nothing;
     }
 
-    private _renderThumbnail(element: PoLRYTubeItem) {
+    private _renderThumbnail(element: YTMusicItem) {
         if (element.thumbnail == "") {
             return html`<div class="empty-thumbnail thumbnail">
                 <ha-icon icon="mdi:music-box"></ha-icon>
@@ -146,7 +146,7 @@ export class PoLRYTubeListItem extends LitElement {
         `;
     }
 
-    private async _fireNavigateEvent(element: PoLRYTubeItem) {
+    private async _fireNavigateEvent(element: YTMusicItem) {
         this.dispatchEvent(
             new CustomEvent("navigate", {
                 detail: {
@@ -171,7 +171,7 @@ export class PoLRYTubeListItem extends LitElement {
         return;
     }
 
-    private async _play(element: PoLRYTubeItem) {
+    private async _play(element: YTMusicItem) {
         if (element.media_content_type == "PLAYLIST_GOTO_TRACK") {
             this.hass.callService("ytube_music_player", "call_method", {
                 entity_id: this.entity["entity_id"],

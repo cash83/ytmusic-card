@@ -1,20 +1,20 @@
 import { LitElement, html, css, CSSResultGroup, PropertyValueMap } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { PoLRYTubeListState, PoLRYTubeItem } from "../utils/utils";
-import { PoLRYTubeList } from "../elements/polr-ytube-list";
-import { PoLRYTubeBrowser } from "../elements/polr-ytube-browser";
-import "../elements/polr-ytube-list";
-import "../elements/polr-ytube-browser";
+import { YTMusicListState, YTMusicItem } from "../utils/utils";
+import { YTMusicList } from "../elements/ytmusic-list";
+import { YTMusicBrowser } from "../elements/ytmusic-browser";
+import "../elements/ytmusic-list";
+import "../elements/ytmusic-browser";
 
-@customElement("polr-ytube-search")
-export class PoLRYTubeSearch extends LitElement {
+@customElement("ytmusic-search")
+export class YTMusicSearch extends LitElement {
     @state() public _hass: any;
     @state() public _entity: any;
     @state() public _limit: number;
-    @state() private _polrYTubeBrowser: PoLRYTubeBrowser;
-    @state() private _elements: PoLRYTubeItem[] = [];
+    @state() private _polrYTubeBrowser: YTMusicBrowser;
+    @state() private _elements: YTMusicItem[] = [];
     @state() private _searchTextField: any;
-    @state() public initialAction: PoLRYTubeItem;
+    @state() public initialAction: YTMusicItem;
 
     constructor() {
         super();
@@ -23,17 +23,17 @@ export class PoLRYTubeSearch extends LitElement {
 
     protected firstUpdated(_changedProperties): void {
         this._polrYTubeBrowser =
-            this.renderRoot.querySelector("polr-ytube-browser");
+            this.renderRoot.querySelector("ytmusic-browser");
         this._searchTextField = this.renderRoot.querySelector("#query");
     }
 
     _renderResults() {
         return html`
-            <polr-ytube-browser
+            <ytmusic-browser
                 .hass=${this._hass}
                 .entity=${this._entity}
                 .initialAction=${this.initialAction}
-            ></polr-ytube-browser>
+            ></ytmusic-browser>
         `;
     }
 

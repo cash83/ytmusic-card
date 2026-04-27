@@ -7,9 +7,9 @@ import {
     nothing,
 } from "lit";
 import { property, state, query } from "lit/decorators.js";
-import "../elements/polr-media-control";
-import "../elements/polr-ytube-browser";
-import { areDeeplyEqual, PoLRYTubeItem } from "../utils/utils";
+import "../elements/ytmusic-media-control";
+import "../elements/ytmusic-browser";
+import { areDeeplyEqual, YTMusicItem } from "../utils/utils";
 import { CastAudioIcon, PlayIcon, PauseIcon, SkipNextIcon } from "../utils/icons";
 
 // source: where to look for this item ("root" = root browse children, "home" = Home section children)
@@ -51,7 +51,7 @@ const YTLogoSVG = html`
     </svg>
 `;
 
-export class PoLRYTubePlayingCard extends LitElement {
+export class YTMusicPlayingCard extends LitElement {
     @state() _config: any = {};
     _hass: any;
     @state() _entity: any;
@@ -59,7 +59,7 @@ export class PoLRYTubePlayingCard extends LitElement {
     @state() _playerExpanded: boolean = false;
     @state() _activeFilter: number = 0;
     @state() _searchActive: boolean = false;
-    @query("polr-ytube-browser") _browser: any;
+    @query("ytmusic-browser") _browser: any;
     private _rootItems: any[] = [];
     private _homeItems: any[] = [];
     private _rootLoaded = false;
@@ -78,7 +78,7 @@ export class PoLRYTubePlayingCard extends LitElement {
         this._config = structuredClone(config);
         if (!("header" in this._config)) this._config.header = "YouTube Music";
         if (!("initialAction" in this._config)) {
-            this._config.initialAction = new PoLRYTubeItem();
+            this._config.initialAction = new YTMusicItem();
             this._config.initialAction.title = YT_FILTERS_LABELS[getUILang()][0];
             this._config.initialAction.media_content_type = null;
             this._config.initialAction.media_content_id = null;
@@ -173,13 +173,13 @@ export class PoLRYTubePlayingCard extends LitElement {
                     </div>
                 </div>
                 <div class="content-area">
-                    <polr-ytube-browser
+                    <ytmusic-browser
                         .hass=${this._hass}
                         .entity=${this._entity}
                         .initialAction=${this._config.initialAction}
                         .coverNavigation=${this._config.coverNavigation}
                         .hideSearch=${true}
-                    ></polr-ytube-browser>
+                    ></ytmusic-browser>
                 </div>
                 ${this._entity?.state !== "off" ? this._renderMiniPlayer() : nothing}
                 ${this._playerExpanded ? this._renderFullPlayer() : nothing}
@@ -313,10 +313,10 @@ export class PoLRYTubePlayingCard extends LitElement {
                             <div class="fp-artist">${artist}</div>
                         </div>
                     </div>
-                    <polr-media-control
+                    <ytmusic-media-control
                         .hass=${this._hass}
                         .entity=${this._entity}
-                    ></polr-media-control>
+                    ></ytmusic-media-control>
                 </div>
             </div>
         `;
@@ -506,7 +506,7 @@ export class PoLRYTubePlayingCard extends LitElement {
                 flex-direction: column;
             }
 
-            polr-ytube-browser {
+            ytmusic-browser {
                 flex: 1;
                 overflow: hidden;
                 display: flex;
@@ -713,7 +713,7 @@ export class PoLRYTubePlayingCard extends LitElement {
             }
 
             /* ── MEDIA CONTROL in full player (force dark-theme colors) ── */
-            polr-media-control {
+            ytmusic-media-control {
                 --primary-text-color: #ffffff;
                 --rgb-primary-text-color: 255, 255, 255;
                 --primary-color: #ff0000;
@@ -774,11 +774,11 @@ export class PoLRYTubePlayingCard extends LitElement {
     }
 }
 
-customElements.define("polr-ytube-playing-card", PoLRYTubePlayingCard);
+customElements.define("ytmusic-playing-card", YTMusicPlayingCard);
 
 (window as any).customCards = (window as any).customCards || [];
 (window as any).customCards.push({
-    type: "polr-ytube-playing-card",
-    name: "PoLR YouTube Playing",
+    type: "ytmusic-playing-card",
+    name: "YTMusic Playing",
     description: "Requires the ytube_media_player integration",
 });

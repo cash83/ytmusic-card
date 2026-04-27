@@ -24,7 +24,7 @@ const IGNORED_FILES = [
 export default {
     input: "src/main.ts",
     output: {
-        file: "polr-ytube-media-card.js",
+        file: "ytmusic-card.js",
         format: "es",
         inlineDynamicImports: true,
     },
