@@ -51,12 +51,24 @@ const YTLogoSVG = html`
     </svg>
 `;
 
+const _ytT: Record<string, Record<string, string>> = {
+    it: { nowPlaying: "In riproduzione", tabPlay: "Riproduzione", queue: "In coda", noQueue: "Nessuna coda attiva" },
+    en: { nowPlaying: "Now Playing", tabPlay: "Playing", queue: "Queue", noQueue: "No active queue" },
+};
+
+function _t(key: string): string {
+    return (_ytT[getUILang()] ?? _ytT["en"])[key] ?? key;
+}
+
 export class YTMusicPlayingCard extends LitElement {
     @state() _config: any = {};
     _hass: any;
     @state() _entity: any;
     @state() _menuOpen: boolean = false;
     @state() _playerExpanded: boolean = false;
+    @state() _showQueue: boolean = false;
+    @state() _queueTracks: any[] = [];
+    @state() _queueLoading: boolean = false;
     @state() _activeFilter: number = 0;
     @state() _searchActive: boolean = false;
     @query("ytmusic-browser") _browser: any;
@@ -296,28 +308,102 @@ export class YTMusicPlayingCard extends LitElement {
                 <div class="fp-bg-blur"></div>
                 <div class="fp-content">
                     <div class="fp-header">
-                        <button class="icon-btn" @click=${() => { this._playerExpanded = false; }}>
+                        <button class="icon-btn" @click=${() => { this._playerExpanded = false; this._showQueue = false; }}>
                             <ha-icon icon="mdi:chevron-down"></ha-icon>
                         </button>
-                        <span class="fp-from">In riproduzione</span>
+                        <span class="fp-from">${_t("nowPlaying")}</span>
                         ${this._renderSourceSelector()}
                     </div>
-                    <div class="fp-art-wrap">
-                        ${art
-                            ? html`<img class="fp-art" src="${art}">`
-                            : html`<div class="fp-art-ph"><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
+                    <div class="fp-tabs">
+                        <button class="fp-tab ${!this._showQueue ? "active" : ""}"
+                            @click=${() => { this._showQueue = false; }}>
+                            ${_t("tabPlay")}
+                        </button>
+                        <button class="fp-tab ${this._showQueue ? "active" : ""}"
+                            @click=${() => { this._showQueue = true; this._fetchQueue(); }}>
+                            ${_t("queue")}
+                        </button>
                     </div>
-                    <div class="fp-info">
-                        <div>
-                            <div class="fp-title">${title}</div>
-                            <div class="fp-artist">${artist}</div>
+                    ${this._showQueue ? this._renderQueue() : html`
+                        <div class="fp-art-wrap">
+                            ${art
+                                ? html`<img class="fp-art" src="${art}">`
+                                : html`<div class="fp-art-ph"><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
                         </div>
-                    </div>
-                    <ytmusic-media-control
-                        .hass=${this._hass}
-                        .entity=${this._entity}
-                    ></ytmusic-media-control>
+                        <div class="fp-info">
+                            <div>
+                                <div class="fp-title">${title}</div>
+                                <div class="fp-artist">${artist}</div>
+                            </div>
+                        </div>
+                        <ytmusic-media-control
+                            .hass=${this._hass}
+                            .entity=${this._entity}
+                        ></ytmusic-media-control>
+                    `}
                 </div>
+            </div>
+        `;
+    }
+
+    _fetchQueue() {
+        if (!this._entity || this._entity.state === "off") return;
+        this._queueLoading = true;
+        this._hass.callWS({
+            type: "media_player/browse_media",
+            entity_id: this._config.entity_id,
+            media_content_type: "cur_playlists",
+            media_content_id: "",
+        }).then((r: any) => {
+            this._queueTracks = (r && r.children) ? r.children : [];
+            this._queueLoading = false;
+        }).catch(() => {
+            this._queueTracks = [];
+            this._queueLoading = false;
+        });
+    }
+
+    _renderQueue() {
+        const currentTrack = (this._entity?.attributes?.current_track !== undefined)
+            ? this._entity.attributes.current_track : -1;
+
+        if (this._queueLoading) return html`
+            <div class="fp-queue-loading">
+                <ha-icon icon="mdi:loading" class="spin"></ha-icon>
+            </div>`;
+
+        if (!this._queueTracks || !this._queueTracks.length) return html`
+            <div class="fp-queue-empty">${_t("noQueue")}</div>`;
+
+        return html`
+            <div class="fp-queue-list">
+                ${this._queueTracks.map((track: any, i: number) => {
+                    const rawTitle = track.title || "";
+                    const dashIdx = rawTitle.indexOf(" - ");
+                    const artist = dashIdx > 0 ? rawTitle.substring(0, dashIdx) : "";
+                    const title = dashIdx > 0 ? rawTitle.substring(dashIdx + 3) : rawTitle;
+                    const thumb = track.thumbnail || "";
+                    const isCurrent = i === currentTrack;
+                    return html`
+                        <div class="fp-queue-item ${isCurrent ? "current" : ""}"
+                            @click=${() => {
+                                this._hass.callService("ytube_music_player", "call_method", {
+                                    entity_id: this._config.entity_id,
+                                    command: "goto_track",
+                                    parameters: i,
+                                });
+                            }}>
+                            ${thumb
+                                ? html`<img class="fp-qi-thumb" src="${thumb}">`
+                                : html`<div class="fp-qi-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
+                            <div class="fp-qi-info">
+                                <div class="fp-qi-title">${title}</div>
+                                ${artist ? html`<div class="fp-qi-artist">${artist}</div>` : nothing}
+                            </div>
+                            ${isCurrent ? html`<ha-icon icon="mdi:volume-high" class="fp-qi-playing"></ha-icon>` : nothing}
+                        </div>
+                    `;
+                })}
             </div>
         `;
     }
@@ -711,6 +797,119 @@ export class YTMusicPlayingCard extends LitElement {
                 color: var(--yt-text2);
                 margin-top: 2px;
             }
+
+            /* ── FULL PLAYER TABS ── */
+            .fp-tabs {
+                display: flex;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                flex-shrink: 0;
+                margin: 4px -20px 0;
+                padding: 0 20px;
+            }
+
+            .fp-tab {
+                background: none;
+                border: none;
+                color: var(--yt-text2);
+                font-size: 14px;
+                font-weight: 600;
+                padding: 10px 18px;
+                cursor: pointer;
+                border-bottom: 2px solid transparent;
+                margin-bottom: -1px;
+                transition: color 0.15s;
+            }
+
+            .fp-tab.active {
+                color: var(--yt-text);
+                border-bottom-color: var(--yt-red);
+            }
+
+            .fp-tab:hover { color: var(--yt-text); }
+
+            /* ── QUEUE LIST ── */
+            .fp-queue-list {
+                flex: 1;
+                overflow-y: auto;
+                padding: 8px 0;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255,255,255,0.2) transparent;
+            }
+
+            .fp-queue-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 4px;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: background 0.1s;
+            }
+
+            .fp-queue-item:hover { background: rgba(255,255,255,0.06); }
+            .fp-queue-item.current { background: rgba(255,255,255,0.08); }
+
+            .fp-qi-thumb {
+                width: 42px;
+                height: 42px;
+                border-radius: 4px;
+                object-fit: cover;
+                flex-shrink: 0;
+            }
+
+            .fp-qi-thumb-ph {
+                width: 42px;
+                height: 42px;
+                border-radius: 4px;
+                background: var(--yt-surface2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                color: var(--yt-text2);
+            }
+
+            .fp-qi-info {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .fp-qi-title {
+                font-size: 14px;
+                font-weight: 500;
+                color: var(--yt-text);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .fp-qi-artist {
+                font-size: 12px;
+                color: var(--yt-text2);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .fp-queue-item.current .fp-qi-title { color: var(--yt-red); }
+
+            .fp-qi-playing {
+                color: var(--yt-red);
+                flex-shrink: 0;
+                --mdc-icon-size: 18px;
+            }
+
+            .fp-queue-loading, .fp-queue-empty {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--yt-text2);
+                font-size: 14px;
+            }
+
+            @keyframes spin { to { transform: rotate(360deg); } }
+            .spin { animation: spin 1s linear infinite; }
 
             /* ── MEDIA CONTROL in full player (force dark-theme colors) ── */
             ytmusic-media-control {
