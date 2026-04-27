@@ -35,11 +35,25 @@ Get the full experience of the ytube_music_player component! You can see what's 
 
 ### Example
 
-```
+```yaml
 type: custom:ytmusic-playing-card
 entity_id: media_player.youtube_living_room_display
 header: YouTube Music
 ```
 
-
 <img width="398" height="563" alt="image" src="https://github.com/user-attachments/assets/deda6f79-7a92-47c2-bdb3-ad419bbb8f10" />
+
+## YTMusic-Search-Card
+
+Search YouTube Music directly from your dashboard.
+
+### Settings
+
+-   `entity_id` - a YTube_Media_Player entity
+
+### Example
+
+```yaml
+type: custom:ytmusic-search-card
+entity_id: media_player.youtube_living_room_display
+```
