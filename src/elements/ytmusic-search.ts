@@ -33,6 +33,7 @@ export class YTMusicSearch extends LitElement {
                 .hass=${this._hass}
                 .entity=${this._entity}
                 .initialAction=${this.initialAction}
+                .hideSearch=${true}
             ></ytmusic-browser>
         `;
     }
