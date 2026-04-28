@@ -138,7 +138,7 @@ export class YTMusicSearch extends LitElement {
 
         select {
             height: 42px;
-            background: rgba(var(--rgb-primary-text-color, 0, 0, 0), 0.06);
+            background: var(--card-background-color);
             border: none;
             border-radius: 4px;
             color: var(--primary-text-color);
