@@ -591,7 +591,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
 
                 select {
                     height: 42px;
-                    background: rgba(var(--rgb-primary-text-color), 0.06);
+                    background: var(--card-background-color);
                     border: none;
                     border-radius: 4px;
                     color: var(--primary-text-color);
@@ -655,6 +655,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 .hass=${this._hass}
                 .entity=${this._entity}
                 .initialAction=${this.initialAction}
+                .hideSearch=${!0}
             ></ytmusic-browser>
         `}render(){return O`
             <div class="content">
