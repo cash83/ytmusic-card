@@ -312,7 +312,7 @@ export class YTMusicBrowser extends LitElement {
                 }
 
                 .crumb {
-                    background-color: rgba(111, 111, 111, 0.2);
+                    background-color: rgba(255, 255, 255, 0.1);
                     padding: 4px 8px;
                     border-radius: 4px;
                     text-transform: uppercase;
@@ -335,10 +335,11 @@ export class YTMusicBrowser extends LitElement {
                 .search-input-wrap {
                     display: flex;
                     align-items: center;
-                    background: rgba(var(--rgb-primary-text-color), 0.06);
-                    border-radius: 4px;
-                    padding: 0 8px;
-                    height: 42px;
+                    background: #1e1e1e;
+                    border: 1px solid rgba(255,255,255,0.12);
+                    border-radius: 24px;
+                    padding: 0 12px;
+                    height: 40px;
                     gap: 4px;
                 }
 
@@ -347,7 +348,7 @@ export class YTMusicBrowser extends LitElement {
                     background: none;
                     border: none;
                     outline: none;
-                    color: var(--primary-text-color);
+                    color: #ffffff;
                     font-size: 14px;
                     height: 100%;
                 }
@@ -358,16 +359,22 @@ export class YTMusicBrowser extends LitElement {
                 }
 
                 select {
-                    height: 42px;
-                    background: var(--card-background-color);
-                    border: none;
-                    border-radius: 4px;
-                    color: var(--primary-text-color);
-                    font-size: 14px;
-                    padding: 0 8px;
+                    height: 40px;
+                    background: #1e1e1e;
+                    border: 1px solid rgba(255,255,255,0.12);
+                    border-radius: 20px;
+                    color: #ffffff;
+                    font-size: 13px;
+                    font-weight: 500;
+                    padding: 0 10px;
                     cursor: pointer;
                     outline: none;
                     width: 100%;
+                }
+
+                select option {
+                    background: #282828;
+                    color: #ffffff;
                 }
 
                 .playable_result {
@@ -389,13 +396,13 @@ export class YTMusicBrowser extends LitElement {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    color: var(--primary-text-color);
+                    color: #ffffff;
                     width: 30px;
                     height: 30px;
                 }
 
                 .icon-btn:hover {
-                    background: rgba(var(--rgb-primary-text-color), 0.08);
+                    background: rgba(255,255,255,0.08);
                 }
 
                 .icon-btn svg {
@@ -405,8 +412,8 @@ export class YTMusicBrowser extends LitElement {
                 }
 
                 .play-btn {
-                    background: var(--primary-color);
-                    color: var(--text-primary-color);
+                    background: #ff0000;
+                    color: #ffffff;
                     border: none;
                     border-radius: 4px;
                     padding: 6px 16px;
