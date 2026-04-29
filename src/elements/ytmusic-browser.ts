@@ -34,6 +34,10 @@ export class YTMusicBrowser extends LitElement {
             this._browseHistory = [];
             this._previousBrowseHistory = [];
             this._browse(this.initialAction);
+        } else if (_changedProperties.has("entity") && this.entity && this.initialAction) {
+            if (this._browseHistory.length === 0) {
+                this._browse(this.initialAction);
+            }
         }
     }
 

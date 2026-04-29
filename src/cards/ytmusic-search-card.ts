@@ -2,7 +2,7 @@ import { LitElement, html, css, CSSResultGroup, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import "../elements/ytmusic-search";
 import { CastAudioIcon } from "../utils/icons";
-import { areDeeplyEqual } from "../utils/utils";
+import { areDeeplyEqual, YTMusicItem } from "../utils/utils";
 
 const YTLogoSVG = html`
     <svg viewBox="0 0 24 24" class="yt-icon" xmlns="http://www.w3.org/2000/svg">
@@ -22,10 +22,16 @@ export class YTMusicSearchCard extends LitElement {
         return { entity_id: "media_player.ytube_music_player" };
     }
 
+    private _initialAction: YTMusicItem;
+
     setConfig(config: any) {
         if (!config.entity_id) throw new Error("entity_id must be specified");
         this._config = structuredClone(config);
         if (!("header" in this._config)) this._config.header = "YouTube Music Search";
+        this._initialAction = new YTMusicItem();
+        this._initialAction.title = "Home";
+        this._initialAction.media_content_type = null;
+        this._initialAction.media_content_id = null;
     }
 
     set hass(hass) {
@@ -66,6 +72,7 @@ export class YTMusicSearchCard extends LitElement {
                     <ytmusic-search
                         ._hass=${this._hass}
                         ._entity=${this._entity}
+                        .initialAction=${this._initialAction}
                     ></ytmusic-search>
                 </div>
             </ha-card>
