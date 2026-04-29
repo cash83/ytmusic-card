@@ -6,7 +6,7 @@ import {
     nothing,
     PropertyValueMap,
 } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import "../shared/ytmusic-slider";
 import { secondsToMMSS } from "../utils/utils";
 import {
@@ -27,6 +27,8 @@ import {
 export class YTMusicMediaControl extends LitElement {
     @property() hass: any;
     @property() entity: any;
+    @state() private _repeatActive: boolean | undefined = undefined;
+    @state() private _shuffleActive: boolean | undefined = undefined;
     volumeSlider: any;
     tracker: any;
     progress: any;
@@ -148,16 +150,22 @@ export class YTMusicMediaControl extends LitElement {
     }
 
     _renderRepeat() {
+        const active = this._repeatActive !== undefined
+            ? this._repeatActive
+            : !!(this.entity?.attributes?.repeat && this.entity?.attributes?.repeat !== "off");
         return html`
-            <button class="icon-btn" @click=${this._changeRepeat}>
+            <button class="icon-btn ${active ? 'active' : ''}" @click=${this._changeRepeat}>
                 ${RepeatIcon}
             </button>
         `;
     }
 
     _renderShuffle() {
+        const active = this._shuffleActive !== undefined
+            ? this._shuffleActive
+            : !!this.entity?.attributes?.shuffle;
         return html`
-            <button class="icon-btn" @click=${this._shuffleList}>
+            <button class="icon-btn ${active ? 'active' : ''}" @click=${this._shuffleList}>
                 ${ShuffleVariantIcon}
             </button>
         `;
@@ -181,10 +189,12 @@ export class YTMusicMediaControl extends LitElement {
                 break;
         }
 
+        this._repeatActive = newRepeat !== "off";
         this.hass.callService("media_player", "repeat_set", {
             entity_id: this.entity["entity_id"],
             repeat: newRepeat,
         });
+        this.requestUpdate();
     }
 
     async _changeVolume() {
@@ -213,11 +223,12 @@ export class YTMusicMediaControl extends LitElement {
 
     async _shuffleList() {
         const shuffle = this.entity?.attributes?.shuffle;
-
+        this._shuffleActive = !shuffle;
         this.hass.callService("media_player", "shuffle_set", {
             entity_id: this.entity["entity_id"],
             shuffle: !shuffle,
         });
+        this.requestUpdate();
     }
 
     async _skipNext() {
@@ -302,6 +313,10 @@ export class YTMusicMediaControl extends LitElement {
 
                 .icon-btn:hover {
                     background: rgba(var(--rgb-primary-text-color), 0.08);
+                }
+
+                .icon-btn.active {
+                    color: var(--primary-color);
                 }
 
                 .icon-btn svg {

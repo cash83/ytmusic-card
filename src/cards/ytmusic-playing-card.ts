@@ -147,6 +147,7 @@ export class YTMusicPlayingCard extends LitElement {
             }
 
             await this.updateComplete;
+            if (this._browser) await this._browser.updateComplete;
             this._navigateToFilter(this._activeFilter);
         } catch (e) {
             console.error("YTube: failed to load root items", e);

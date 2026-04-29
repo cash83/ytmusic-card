@@ -1,33 +1,33 @@
-function t(t,e,i,s){var r,n=arguments.length,o=n<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)o=Reflect.decorate(t,e,i,s);else for(var a=t.length-1;a>=0;a--)(r=t[a])&&(o=(n<3?r(o):n>3?r(e,i,o):r(e,i))||o);return n>3&&o&&Object.defineProperty(e,i,o),o}"function"==typeof SuppressedError&&SuppressedError;
+function t(t,e,i,s){var r,o=arguments.length,n=o<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)n=Reflect.decorate(t,e,i,s);else for(var a=t.length-1;a>=0;a--)(r=t[a])&&(n=(o<3?r(n):o>3?r(e,i,n):r(e,i))||n);return o>3&&n&&Object.defineProperty(e,i,n),n}"function"==typeof SuppressedError&&SuppressedError;
 /**
  * @license
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const e=window,i=e.ShadowRoot&&(void 0===e.ShadyCSS||e.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s=Symbol(),r=new WeakMap;let n=class{constructor(t,e,i){if(this._$cssResult$=!0,i!==s)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const e=this.t;if(i&&void 0===t){const i=void 0!==e&&1===e.length;i&&(t=r.get(e)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&r.set(e,t))}return t}toString(){return this.cssText}};const o=(t,...e)=>{const i=1===t.length?t[0]:e.reduce((e,i,s)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+t[s+1],t[0]);return new n(i,t,s)},a=i?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const i of t.cssRules)e+=i.cssText;return(t=>new n("string"==typeof t?t:t+"",void 0,s))(e)})(t):t;
+const e=window,i=e.ShadowRoot&&(void 0===e.ShadyCSS||e.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s=Symbol(),r=new WeakMap;let o=class{constructor(t,e,i){if(this._$cssResult$=!0,i!==s)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const e=this.t;if(i&&void 0===t){const i=void 0!==e&&1===e.length;i&&(t=r.get(e)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&r.set(e,t))}return t}toString(){return this.cssText}};const n=(t,...e)=>{const i=1===t.length?t[0]:e.reduce((e,i,s)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+t[s+1],t[0]);return new o(i,t,s)},a=i?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const i of t.cssRules)e+=i.cssText;return(t=>new o("string"==typeof t?t:t+"",void 0,s))(e)})(t):t;
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
- */var l;const d=window,c=d.trustedTypes,h=c?c.emptyScript:"",p=d.reactiveElementPolyfillSupport,u={toAttribute(t,e){switch(e){case Boolean:t=t?h:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let i=t;switch(e){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t)}catch(t){i=null}}return i}},v=(t,e)=>e!==t&&(e==e||t==t),y={attribute:!0,type:String,converter:u,reflect:!1,hasChanged:v},_="finalized";let m=class extends HTMLElement{constructor(){super(),this._$Ei=new Map,this.isUpdatePending=!1,this.hasUpdated=!1,this._$El=null,this._$Eu()}static addInitializer(t){var e;this.finalize(),(null!==(e=this.h)&&void 0!==e?e:this.h=[]).push(t)}static get observedAttributes(){this.finalize();const t=[];return this.elementProperties.forEach((e,i)=>{const s=this._$Ep(i,e);void 0!==s&&(this._$Ev.set(s,i),t.push(s))}),t}static createProperty(t,e=y){if(e.state&&(e.attribute=!1),this.finalize(),this.elementProperties.set(t,e),!e.noAccessor&&!this.prototype.hasOwnProperty(t)){const i="symbol"==typeof t?Symbol():"__"+t,s=this.getPropertyDescriptor(t,i,e);void 0!==s&&Object.defineProperty(this.prototype,t,s)}}static getPropertyDescriptor(t,e,i){return{get(){return this[e]},set(s){const r=this[t];this[e]=s,this.requestUpdate(t,r,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)||y}static finalize(){if(this.hasOwnProperty(_))return!1;this[_]=!0;const t=Object.getPrototypeOf(this);if(t.finalize(),void 0!==t.h&&(this.h=[...t.h]),this.elementProperties=new Map(t.elementProperties),this._$Ev=new Map,this.hasOwnProperty("properties")){const t=this.properties,e=[...Object.getOwnPropertyNames(t),...Object.getOwnPropertySymbols(t)];for(const i of e)this.createProperty(i,t[i])}return this.elementStyles=this.finalizeStyles(this.styles),!0}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const i=new Set(t.flat(1/0).reverse());for(const t of i)e.unshift(a(t))}else void 0!==t&&e.push(a(t));return e}static _$Ep(t,e){const i=e.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}_$Eu(){var t;this._$E_=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$Eg(),this.requestUpdate(),null===(t=this.constructor.h)||void 0===t||t.forEach(t=>t(this))}addController(t){var e,i;(null!==(e=this._$ES)&&void 0!==e?e:this._$ES=[]).push(t),void 0!==this.renderRoot&&this.isConnected&&(null===(i=t.hostConnected)||void 0===i||i.call(t))}removeController(t){var e;null===(e=this._$ES)||void 0===e||e.splice(this._$ES.indexOf(t)>>>0,1)}_$Eg(){this.constructor.elementProperties.forEach((t,e)=>{this.hasOwnProperty(e)&&(this._$Ei.set(e,this[e]),delete this[e])})}createRenderRoot(){var t;const s=null!==(t=this.shadowRoot)&&void 0!==t?t:this.attachShadow(this.constructor.shadowRootOptions);return((t,s)=>{i?t.adoptedStyleSheets=s.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet):s.forEach(i=>{const s=document.createElement("style"),r=e.litNonce;void 0!==r&&s.setAttribute("nonce",r),s.textContent=i.cssText,t.appendChild(s)})})(s,this.constructor.elementStyles),s}connectedCallback(){var t;void 0===this.renderRoot&&(this.renderRoot=this.createRenderRoot()),this.enableUpdating(!0),null===(t=this._$ES)||void 0===t||t.forEach(t=>{var e;return null===(e=t.hostConnected)||void 0===e?void 0:e.call(t)})}enableUpdating(t){}disconnectedCallback(){var t;null===(t=this._$ES)||void 0===t||t.forEach(t=>{var e;return null===(e=t.hostDisconnected)||void 0===e?void 0:e.call(t)})}attributeChangedCallback(t,e,i){this._$AK(t,i)}_$EO(t,e,i=y){var s;const r=this.constructor._$Ep(t,i);if(void 0!==r&&!0===i.reflect){const n=(void 0!==(null===(s=i.converter)||void 0===s?void 0:s.toAttribute)?i.converter:u).toAttribute(e,i.type);this._$El=t,null==n?this.removeAttribute(r):this.setAttribute(r,n),this._$El=null}}_$AK(t,e){var i;const s=this.constructor,r=s._$Ev.get(t);if(void 0!==r&&this._$El!==r){const t=s.getPropertyOptions(r),n="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==(null===(i=t.converter)||void 0===i?void 0:i.fromAttribute)?t.converter:u;this._$El=r,this[r]=n.fromAttribute(e,t.type),this._$El=null}}requestUpdate(t,e,i){let s=!0;void 0!==t&&(((i=i||this.constructor.getPropertyOptions(t)).hasChanged||v)(this[t],e)?(this._$AL.has(t)||this._$AL.set(t,e),!0===i.reflect&&this._$El!==t&&(void 0===this._$EC&&(this._$EC=new Map),this._$EC.set(t,i))):s=!1),!this.isUpdatePending&&s&&(this._$E_=this._$Ej())}async _$Ej(){this.isUpdatePending=!0;try{await this._$E_}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){var t;if(!this.isUpdatePending)return;this.hasUpdated,this._$Ei&&(this._$Ei.forEach((t,e)=>this[e]=t),this._$Ei=void 0);let e=!1;const i=this._$AL;try{e=this.shouldUpdate(i),e?(this.willUpdate(i),null===(t=this._$ES)||void 0===t||t.forEach(t=>{var e;return null===(e=t.hostUpdate)||void 0===e?void 0:e.call(t)}),this.update(i)):this._$Ek()}catch(t){throw e=!1,this._$Ek(),t}e&&this._$AE(i)}willUpdate(t){}_$AE(t){var e;null===(e=this._$ES)||void 0===e||e.forEach(t=>{var e;return null===(e=t.hostUpdated)||void 0===e?void 0:e.call(t)}),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$Ek(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$E_}shouldUpdate(t){return!0}update(t){void 0!==this._$EC&&(this._$EC.forEach((t,e)=>this._$EO(e,this[e],t)),this._$EC=void 0),this._$Ek()}updated(t){}firstUpdated(t){}};
-/**
- * @license
- * Copyright 2017 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */
-var g;m[_]=!0,m.elementProperties=new Map,m.elementStyles=[],m.shadowRootOptions={mode:"open"},null==p||p({ReactiveElement:m}),(null!==(l=d.reactiveElementVersions)&&void 0!==l?l:d.reactiveElementVersions=[]).push("1.6.3");const f=window,b=f.trustedTypes,x=b?b.createPolicy("lit-html",{createHTML:t=>t}):void 0,w="$lit$",$=`lit$${(Math.random()+"").slice(9)}$`,A="?"+$,k=`<${A}>`,S=document,C=()=>S.createComment(""),E=t=>null===t||"object"!=typeof t&&"function"!=typeof t,L=Array.isArray,P="[ \t\n\f\r]",H=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,R=/-->/g,M=/>/g,T=RegExp(`>|${P}(?:([^\\s"'>=/]+)(${P}*=${P}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),q=/'/g,N=/"/g,O=/^(?:script|style|textarea|title)$/i,V=(t=>(e,...i)=>({_$litType$:t,strings:e,values:i}))(1),U=Symbol.for("lit-noChange"),B=Symbol.for("lit-nothing"),z=new WeakMap,j=S.createTreeWalker(S,129,null,!1);function I(t,e){if(!Array.isArray(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==x?x.createHTML(e):e}const Y=(t,e)=>{const i=t.length-1,s=[];let r,n=2===e?"<svg>":"",o=H;for(let e=0;e<i;e++){const i=t[e];let a,l,d=-1,c=0;for(;c<i.length&&(o.lastIndex=c,l=o.exec(i),null!==l);)c=o.lastIndex,o===H?"!--"===l[1]?o=R:void 0!==l[1]?o=M:void 0!==l[2]?(O.test(l[2])&&(r=RegExp("</"+l[2],"g")),o=T):void 0!==l[3]&&(o=T):o===T?">"===l[0]?(o=null!=r?r:H,d=-1):void 0===l[1]?d=-2:(d=o.lastIndex-l[2].length,a=l[1],o=void 0===l[3]?T:'"'===l[3]?N:q):o===N||o===q?o=T:o===R||o===M?o=H:(o=T,r=void 0);const h=o===T&&t[e+1].startsWith("/>")?" ":"";n+=o===H?i+k:d>=0?(s.push(a),i.slice(0,d)+w+i.slice(d)+$+h):i+$+(-2===d?(s.push(void 0),e):h)}return[I(t,n+(t[i]||"<?>")+(2===e?"</svg>":"")),s]};class F{constructor({strings:t,_$litType$:e},i){let s;this.parts=[];let r=0,n=0;const o=t.length-1,a=this.parts,[l,d]=Y(t,e);if(this.el=F.createElement(l,i),j.currentNode=this.el.content,2===e){const t=this.el.content,e=t.firstChild;e.remove(),t.append(...e.childNodes)}for(;null!==(s=j.nextNode())&&a.length<o;){if(1===s.nodeType){if(s.hasAttributes()){const t=[];for(const e of s.getAttributeNames())if(e.endsWith(w)||e.startsWith($)){const i=d[n++];if(t.push(e),void 0!==i){const t=s.getAttribute(i.toLowerCase()+w).split($),e=/([.?@])?(.*)/.exec(i);a.push({type:1,index:r,name:e[2],strings:t,ctor:"."===e[1]?Z:"?"===e[1]?J:"@"===e[1]?X:Q})}else a.push({type:6,index:r})}for(const e of t)s.removeAttribute(e)}if(O.test(s.tagName)){const t=s.textContent.split($),e=t.length-1;if(e>0){s.textContent=b?b.emptyScript:"";for(let i=0;i<e;i++)s.append(t[i],C()),j.nextNode(),a.push({type:2,index:++r});s.append(t[e],C())}}}else if(8===s.nodeType)if(s.data===A)a.push({type:2,index:r});else{let t=-1;for(;-1!==(t=s.data.indexOf($,t+1));)a.push({type:7,index:r}),t+=$.length-1}r++}}static createElement(t,e){const i=S.createElement("template");return i.innerHTML=t,i}}function D(t,e,i=t,s){var r,n,o,a;if(e===U)return e;let l=void 0!==s?null===(r=i._$Co)||void 0===r?void 0:r[s]:i._$Cl;const d=E(e)?void 0:e._$litDirective$;return(null==l?void 0:l.constructor)!==d&&(null===(n=null==l?void 0:l._$AO)||void 0===n||n.call(l,!1),void 0===d?l=void 0:(l=new d(t),l._$AT(t,i,s)),void 0!==s?(null!==(o=(a=i)._$Co)&&void 0!==o?o:a._$Co=[])[s]=l:i._$Cl=l),void 0!==l&&(e=D(t,l._$AS(t,e.values),l,s)),e}class W{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){var e;const{el:{content:i},parts:s}=this._$AD,r=(null!==(e=null==t?void 0:t.creationScope)&&void 0!==e?e:S).importNode(i,!0);j.currentNode=r;let n=j.nextNode(),o=0,a=0,l=s[0];for(;void 0!==l;){if(o===l.index){let e;2===l.type?e=new K(n,n.nextSibling,this,t):1===l.type?e=new l.ctor(n,l.name,l.strings,this,t):6===l.type&&(e=new tt(n,this,t)),this._$AV.push(e),l=s[++a]}o!==(null==l?void 0:l.index)&&(n=j.nextNode(),o++)}return j.currentNode=S,r}v(t){let e=0;for(const i of this._$AV)void 0!==i&&(void 0!==i.strings?(i._$AI(t,i,e),e+=i.strings.length-2):i._$AI(t[e])),e++}}class K{constructor(t,e,i,s){var r;this.type=2,this._$AH=B,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=i,this.options=s,this._$Cp=null===(r=null==s?void 0:s.isConnected)||void 0===r||r}get _$AU(){var t,e;return null!==(e=null===(t=this._$AM)||void 0===t?void 0:t._$AU)&&void 0!==e?e:this._$Cp}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===(null==t?void 0:t.nodeType)&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=D(this,t,e),E(t)?t===B||null==t||""===t?(this._$AH!==B&&this._$AR(),this._$AH=B):t!==this._$AH&&t!==U&&this._(t):void 0!==t._$litType$?this.g(t):void 0!==t.nodeType?this.$(t):(t=>L(t)||"function"==typeof(null==t?void 0:t[Symbol.iterator]))(t)?this.T(t):this._(t)}k(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}$(t){this._$AH!==t&&(this._$AR(),this._$AH=this.k(t))}_(t){this._$AH!==B&&E(this._$AH)?this._$AA.nextSibling.data=t:this.$(S.createTextNode(t)),this._$AH=t}g(t){var e;const{values:i,_$litType$:s}=t,r="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=F.createElement(I(s.h,s.h[0]),this.options)),s);if((null===(e=this._$AH)||void 0===e?void 0:e._$AD)===r)this._$AH.v(i);else{const t=new W(r,this),e=t.u(this.options);t.v(i),this.$(e),this._$AH=t}}_$AC(t){let e=z.get(t.strings);return void 0===e&&z.set(t.strings,e=new F(t)),e}T(t){L(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let i,s=0;for(const r of t)s===e.length?e.push(i=new K(this.k(C()),this.k(C()),this,this.options)):i=e[s],i._$AI(r),s++;s<e.length&&(this._$AR(i&&i._$AB.nextSibling,s),e.length=s)}_$AR(t=this._$AA.nextSibling,e){var i;for(null===(i=this._$AP)||void 0===i||i.call(this,!1,!0,e);t&&t!==this._$AB;){const e=t.nextSibling;t.remove(),t=e}}setConnected(t){var e;void 0===this._$AM&&(this._$Cp=t,null===(e=this._$AP)||void 0===e||e.call(this,t))}}class Q{constructor(t,e,i,s,r){this.type=1,this._$AH=B,this._$AN=void 0,this.element=t,this.name=e,this._$AM=s,this.options=r,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=B}get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}_$AI(t,e=this,i,s){const r=this.strings;let n=!1;if(void 0===r)t=D(this,t,e,0),n=!E(t)||t!==this._$AH&&t!==U,n&&(this._$AH=t);else{const s=t;let o,a;for(t=r[0],o=0;o<r.length-1;o++)a=D(this,s[i+o],e,o),a===U&&(a=this._$AH[o]),n||(n=!E(a)||a!==this._$AH[o]),a===B?t=B:t!==B&&(t+=(null!=a?a:"")+r[o+1]),this._$AH[o]=a}n&&!s&&this.j(t)}j(t){t===B?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,null!=t?t:"")}}class Z extends Q{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===B?void 0:t}}const G=b?b.emptyScript:"";class J extends Q{constructor(){super(...arguments),this.type=4}j(t){t&&t!==B?this.element.setAttribute(this.name,G):this.element.removeAttribute(this.name)}}class X extends Q{constructor(t,e,i,s,r){super(t,e,i,s,r),this.type=5}_$AI(t,e=this){var i;if((t=null!==(i=D(this,t,e,0))&&void 0!==i?i:B)===U)return;const s=this._$AH,r=t===B&&s!==B||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,n=t!==B&&(s===B||r);r&&this.element.removeEventListener(this.name,this,s),n&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){var e,i;"function"==typeof this._$AH?this._$AH.call(null!==(i=null===(e=this.options)||void 0===e?void 0:e.host)&&void 0!==i?i:this.element,t):this._$AH.handleEvent(t)}}class tt{constructor(t,e,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){D(this,t)}}const et=f.litHtmlPolyfillSupport;null==et||et(F,K),(null!==(g=f.litHtmlVersions)&&void 0!==g?g:f.litHtmlVersions=[]).push("2.8.0");
+ */var l;const d=window,c=d.trustedTypes,h=c?c.emptyScript:"",p=d.reactiveElementPolyfillSupport,u={toAttribute(t,e){switch(e){case Boolean:t=t?h:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let i=t;switch(e){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t)}catch(t){i=null}}return i}},v=(t,e)=>e!==t&&(e==e||t==t),y={attribute:!0,type:String,converter:u,reflect:!1,hasChanged:v},_="finalized";let m=class extends HTMLElement{constructor(){super(),this._$Ei=new Map,this.isUpdatePending=!1,this.hasUpdated=!1,this._$El=null,this._$Eu()}static addInitializer(t){var e;this.finalize(),(null!==(e=this.h)&&void 0!==e?e:this.h=[]).push(t)}static get observedAttributes(){this.finalize();const t=[];return this.elementProperties.forEach((e,i)=>{const s=this._$Ep(i,e);void 0!==s&&(this._$Ev.set(s,i),t.push(s))}),t}static createProperty(t,e=y){if(e.state&&(e.attribute=!1),this.finalize(),this.elementProperties.set(t,e),!e.noAccessor&&!this.prototype.hasOwnProperty(t)){const i="symbol"==typeof t?Symbol():"__"+t,s=this.getPropertyDescriptor(t,i,e);void 0!==s&&Object.defineProperty(this.prototype,t,s)}}static getPropertyDescriptor(t,e,i){return{get(){return this[e]},set(s){const r=this[t];this[e]=s,this.requestUpdate(t,r,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)||y}static finalize(){if(this.hasOwnProperty(_))return!1;this[_]=!0;const t=Object.getPrototypeOf(this);if(t.finalize(),void 0!==t.h&&(this.h=[...t.h]),this.elementProperties=new Map(t.elementProperties),this._$Ev=new Map,this.hasOwnProperty("properties")){const t=this.properties,e=[...Object.getOwnPropertyNames(t),...Object.getOwnPropertySymbols(t)];for(const i of e)this.createProperty(i,t[i])}return this.elementStyles=this.finalizeStyles(this.styles),!0}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const i=new Set(t.flat(1/0).reverse());for(const t of i)e.unshift(a(t))}else void 0!==t&&e.push(a(t));return e}static _$Ep(t,e){const i=e.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}_$Eu(){var t;this._$E_=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$Eg(),this.requestUpdate(),null===(t=this.constructor.h)||void 0===t||t.forEach(t=>t(this))}addController(t){var e,i;(null!==(e=this._$ES)&&void 0!==e?e:this._$ES=[]).push(t),void 0!==this.renderRoot&&this.isConnected&&(null===(i=t.hostConnected)||void 0===i||i.call(t))}removeController(t){var e;null===(e=this._$ES)||void 0===e||e.splice(this._$ES.indexOf(t)>>>0,1)}_$Eg(){this.constructor.elementProperties.forEach((t,e)=>{this.hasOwnProperty(e)&&(this._$Ei.set(e,this[e]),delete this[e])})}createRenderRoot(){var t;const s=null!==(t=this.shadowRoot)&&void 0!==t?t:this.attachShadow(this.constructor.shadowRootOptions);return((t,s)=>{i?t.adoptedStyleSheets=s.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet):s.forEach(i=>{const s=document.createElement("style"),r=e.litNonce;void 0!==r&&s.setAttribute("nonce",r),s.textContent=i.cssText,t.appendChild(s)})})(s,this.constructor.elementStyles),s}connectedCallback(){var t;void 0===this.renderRoot&&(this.renderRoot=this.createRenderRoot()),this.enableUpdating(!0),null===(t=this._$ES)||void 0===t||t.forEach(t=>{var e;return null===(e=t.hostConnected)||void 0===e?void 0:e.call(t)})}enableUpdating(t){}disconnectedCallback(){var t;null===(t=this._$ES)||void 0===t||t.forEach(t=>{var e;return null===(e=t.hostDisconnected)||void 0===e?void 0:e.call(t)})}attributeChangedCallback(t,e,i){this._$AK(t,i)}_$EO(t,e,i=y){var s;const r=this.constructor._$Ep(t,i);if(void 0!==r&&!0===i.reflect){const o=(void 0!==(null===(s=i.converter)||void 0===s?void 0:s.toAttribute)?i.converter:u).toAttribute(e,i.type);this._$El=t,null==o?this.removeAttribute(r):this.setAttribute(r,o),this._$El=null}}_$AK(t,e){var i;const s=this.constructor,r=s._$Ev.get(t);if(void 0!==r&&this._$El!==r){const t=s.getPropertyOptions(r),o="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==(null===(i=t.converter)||void 0===i?void 0:i.fromAttribute)?t.converter:u;this._$El=r,this[r]=o.fromAttribute(e,t.type),this._$El=null}}requestUpdate(t,e,i){let s=!0;void 0!==t&&(((i=i||this.constructor.getPropertyOptions(t)).hasChanged||v)(this[t],e)?(this._$AL.has(t)||this._$AL.set(t,e),!0===i.reflect&&this._$El!==t&&(void 0===this._$EC&&(this._$EC=new Map),this._$EC.set(t,i))):s=!1),!this.isUpdatePending&&s&&(this._$E_=this._$Ej())}async _$Ej(){this.isUpdatePending=!0;try{await this._$E_}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){var t;if(!this.isUpdatePending)return;this.hasUpdated,this._$Ei&&(this._$Ei.forEach((t,e)=>this[e]=t),this._$Ei=void 0);let e=!1;const i=this._$AL;try{e=this.shouldUpdate(i),e?(this.willUpdate(i),null===(t=this._$ES)||void 0===t||t.forEach(t=>{var e;return null===(e=t.hostUpdate)||void 0===e?void 0:e.call(t)}),this.update(i)):this._$Ek()}catch(t){throw e=!1,this._$Ek(),t}e&&this._$AE(i)}willUpdate(t){}_$AE(t){var e;null===(e=this._$ES)||void 0===e||e.forEach(t=>{var e;return null===(e=t.hostUpdated)||void 0===e?void 0:e.call(t)}),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$Ek(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$E_}shouldUpdate(t){return!0}update(t){void 0!==this._$EC&&(this._$EC.forEach((t,e)=>this._$EO(e,this[e],t)),this._$EC=void 0),this._$Ek()}updated(t){}firstUpdated(t){}};
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-var it,st;class rt extends m{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){var t,e;const i=super.createRenderRoot();return null!==(t=(e=this.renderOptions).renderBefore)&&void 0!==t||(e.renderBefore=i.firstChild),i}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{var s,r;const n=null!==(s=null==i?void 0:i.renderBefore)&&void 0!==s?s:e;let o=n._$litPart$;if(void 0===o){const t=null!==(r=null==i?void 0:i.renderBefore)&&void 0!==r?r:null;n._$litPart$=o=new K(e.insertBefore(C(),t),t,void 0,null!=i?i:{})}return o._$AI(t),o})(e,this.renderRoot,this.renderOptions)}connectedCallback(){var t;super.connectedCallback(),null===(t=this._$Do)||void 0===t||t.setConnected(!0)}disconnectedCallback(){var t;super.disconnectedCallback(),null===(t=this._$Do)||void 0===t||t.setConnected(!1)}render(){return U}}rt.finalized=!0,rt._$litElement$=!0,null===(it=globalThis.litElementHydrateSupport)||void 0===it||it.call(globalThis,{LitElement:rt});const nt=globalThis.litElementPolyfillSupport;null==nt||nt({LitElement:rt}),(null!==(st=globalThis.litElementVersions)&&void 0!==st?st:globalThis.litElementVersions=[]).push("3.3.2");
+var g;m[_]=!0,m.elementProperties=new Map,m.elementStyles=[],m.shadowRootOptions={mode:"open"},null==p||p({ReactiveElement:m}),(null!==(l=d.reactiveElementVersions)&&void 0!==l?l:d.reactiveElementVersions=[]).push("1.6.3");const f=window,b=f.trustedTypes,x=b?b.createPolicy("lit-html",{createHTML:t=>t}):void 0,w="$lit$",$=`lit$${(Math.random()+"").slice(9)}$`,A="?"+$,k=`<${A}>`,S=document,C=()=>S.createComment(""),L=t=>null===t||"object"!=typeof t&&"function"!=typeof t,E=Array.isArray,P="[ \t\n\f\r]",H=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,R=/-->/g,M=/>/g,T=RegExp(`>|${P}(?:([^\\s"'>=/]+)(${P}*=${P}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),q=/'/g,N=/"/g,O=/^(?:script|style|textarea|title)$/i,V=(t=>(e,...i)=>({_$litType$:t,strings:e,values:i}))(1),U=Symbol.for("lit-noChange"),z=Symbol.for("lit-nothing"),B=new WeakMap,j=S.createTreeWalker(S,129,null,!1);function I(t,e){if(!Array.isArray(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==x?x.createHTML(e):e}const Y=(t,e)=>{const i=t.length-1,s=[];let r,o=2===e?"<svg>":"",n=H;for(let e=0;e<i;e++){const i=t[e];let a,l,d=-1,c=0;for(;c<i.length&&(n.lastIndex=c,l=n.exec(i),null!==l);)c=n.lastIndex,n===H?"!--"===l[1]?n=R:void 0!==l[1]?n=M:void 0!==l[2]?(O.test(l[2])&&(r=RegExp("</"+l[2],"g")),n=T):void 0!==l[3]&&(n=T):n===T?">"===l[0]?(n=null!=r?r:H,d=-1):void 0===l[1]?d=-2:(d=n.lastIndex-l[2].length,a=l[1],n=void 0===l[3]?T:'"'===l[3]?N:q):n===N||n===q?n=T:n===R||n===M?n=H:(n=T,r=void 0);const h=n===T&&t[e+1].startsWith("/>")?" ":"";o+=n===H?i+k:d>=0?(s.push(a),i.slice(0,d)+w+i.slice(d)+$+h):i+$+(-2===d?(s.push(void 0),e):h)}return[I(t,o+(t[i]||"<?>")+(2===e?"</svg>":"")),s]};class F{constructor({strings:t,_$litType$:e},i){let s;this.parts=[];let r=0,o=0;const n=t.length-1,a=this.parts,[l,d]=Y(t,e);if(this.el=F.createElement(l,i),j.currentNode=this.el.content,2===e){const t=this.el.content,e=t.firstChild;e.remove(),t.append(...e.childNodes)}for(;null!==(s=j.nextNode())&&a.length<n;){if(1===s.nodeType){if(s.hasAttributes()){const t=[];for(const e of s.getAttributeNames())if(e.endsWith(w)||e.startsWith($)){const i=d[o++];if(t.push(e),void 0!==i){const t=s.getAttribute(i.toLowerCase()+w).split($),e=/([.?@])?(.*)/.exec(i);a.push({type:1,index:r,name:e[2],strings:t,ctor:"."===e[1]?Z:"?"===e[1]?J:"@"===e[1]?X:Q})}else a.push({type:6,index:r})}for(const e of t)s.removeAttribute(e)}if(O.test(s.tagName)){const t=s.textContent.split($),e=t.length-1;if(e>0){s.textContent=b?b.emptyScript:"";for(let i=0;i<e;i++)s.append(t[i],C()),j.nextNode(),a.push({type:2,index:++r});s.append(t[e],C())}}}else if(8===s.nodeType)if(s.data===A)a.push({type:2,index:r});else{let t=-1;for(;-1!==(t=s.data.indexOf($,t+1));)a.push({type:7,index:r}),t+=$.length-1}r++}}static createElement(t,e){const i=S.createElement("template");return i.innerHTML=t,i}}function D(t,e,i=t,s){var r,o,n,a;if(e===U)return e;let l=void 0!==s?null===(r=i._$Co)||void 0===r?void 0:r[s]:i._$Cl;const d=L(e)?void 0:e._$litDirective$;return(null==l?void 0:l.constructor)!==d&&(null===(o=null==l?void 0:l._$AO)||void 0===o||o.call(l,!1),void 0===d?l=void 0:(l=new d(t),l._$AT(t,i,s)),void 0!==s?(null!==(n=(a=i)._$Co)&&void 0!==n?n:a._$Co=[])[s]=l:i._$Cl=l),void 0!==l&&(e=D(t,l._$AS(t,e.values),l,s)),e}class W{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){var e;const{el:{content:i},parts:s}=this._$AD,r=(null!==(e=null==t?void 0:t.creationScope)&&void 0!==e?e:S).importNode(i,!0);j.currentNode=r;let o=j.nextNode(),n=0,a=0,l=s[0];for(;void 0!==l;){if(n===l.index){let e;2===l.type?e=new K(o,o.nextSibling,this,t):1===l.type?e=new l.ctor(o,l.name,l.strings,this,t):6===l.type&&(e=new tt(o,this,t)),this._$AV.push(e),l=s[++a]}n!==(null==l?void 0:l.index)&&(o=j.nextNode(),n++)}return j.currentNode=S,r}v(t){let e=0;for(const i of this._$AV)void 0!==i&&(void 0!==i.strings?(i._$AI(t,i,e),e+=i.strings.length-2):i._$AI(t[e])),e++}}class K{constructor(t,e,i,s){var r;this.type=2,this._$AH=z,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=i,this.options=s,this._$Cp=null===(r=null==s?void 0:s.isConnected)||void 0===r||r}get _$AU(){var t,e;return null!==(e=null===(t=this._$AM)||void 0===t?void 0:t._$AU)&&void 0!==e?e:this._$Cp}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===(null==t?void 0:t.nodeType)&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=D(this,t,e),L(t)?t===z||null==t||""===t?(this._$AH!==z&&this._$AR(),this._$AH=z):t!==this._$AH&&t!==U&&this._(t):void 0!==t._$litType$?this.g(t):void 0!==t.nodeType?this.$(t):(t=>E(t)||"function"==typeof(null==t?void 0:t[Symbol.iterator]))(t)?this.T(t):this._(t)}k(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}$(t){this._$AH!==t&&(this._$AR(),this._$AH=this.k(t))}_(t){this._$AH!==z&&L(this._$AH)?this._$AA.nextSibling.data=t:this.$(S.createTextNode(t)),this._$AH=t}g(t){var e;const{values:i,_$litType$:s}=t,r="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=F.createElement(I(s.h,s.h[0]),this.options)),s);if((null===(e=this._$AH)||void 0===e?void 0:e._$AD)===r)this._$AH.v(i);else{const t=new W(r,this),e=t.u(this.options);t.v(i),this.$(e),this._$AH=t}}_$AC(t){let e=B.get(t.strings);return void 0===e&&B.set(t.strings,e=new F(t)),e}T(t){E(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let i,s=0;for(const r of t)s===e.length?e.push(i=new K(this.k(C()),this.k(C()),this,this.options)):i=e[s],i._$AI(r),s++;s<e.length&&(this._$AR(i&&i._$AB.nextSibling,s),e.length=s)}_$AR(t=this._$AA.nextSibling,e){var i;for(null===(i=this._$AP)||void 0===i||i.call(this,!1,!0,e);t&&t!==this._$AB;){const e=t.nextSibling;t.remove(),t=e}}setConnected(t){var e;void 0===this._$AM&&(this._$Cp=t,null===(e=this._$AP)||void 0===e||e.call(this,t))}}class Q{constructor(t,e,i,s,r){this.type=1,this._$AH=z,this._$AN=void 0,this.element=t,this.name=e,this._$AM=s,this.options=r,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=z}get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}_$AI(t,e=this,i,s){const r=this.strings;let o=!1;if(void 0===r)t=D(this,t,e,0),o=!L(t)||t!==this._$AH&&t!==U,o&&(this._$AH=t);else{const s=t;let n,a;for(t=r[0],n=0;n<r.length-1;n++)a=D(this,s[i+n],e,n),a===U&&(a=this._$AH[n]),o||(o=!L(a)||a!==this._$AH[n]),a===z?t=z:t!==z&&(t+=(null!=a?a:"")+r[n+1]),this._$AH[n]=a}o&&!s&&this.j(t)}j(t){t===z?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,null!=t?t:"")}}class Z extends Q{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===z?void 0:t}}const G=b?b.emptyScript:"";class J extends Q{constructor(){super(...arguments),this.type=4}j(t){t&&t!==z?this.element.setAttribute(this.name,G):this.element.removeAttribute(this.name)}}class X extends Q{constructor(t,e,i,s,r){super(t,e,i,s,r),this.type=5}_$AI(t,e=this){var i;if((t=null!==(i=D(this,t,e,0))&&void 0!==i?i:z)===U)return;const s=this._$AH,r=t===z&&s!==z||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,o=t!==z&&(s===z||r);r&&this.element.removeEventListener(this.name,this,s),o&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){var e,i;"function"==typeof this._$AH?this._$AH.call(null!==(i=null===(e=this.options)||void 0===e?void 0:e.host)&&void 0!==i?i:this.element,t):this._$AH.handleEvent(t)}}class tt{constructor(t,e,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){D(this,t)}}const et=f.litHtmlPolyfillSupport;null==et||et(F,K),(null!==(g=f.litHtmlVersions)&&void 0!==g?g:f.litHtmlVersions=[]).push("2.8.0");
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const ot=t=>e=>"function"==typeof e?((t,e)=>(customElements.define(t,e),e))(t,e):((t,e)=>{const{kind:i,elements:s}=e;return{kind:i,elements:s,finisher(e){customElements.define(t,e)}}})(t,e),at=(t,e)=>"method"===e.kind&&e.descriptor&&!("value"in e.descriptor)?{...e,finisher(i){i.createProperty(e.key,t)}}:{kind:"field",key:Symbol(),placement:"own",descriptor:{},originalKey:e.key,initializer(){"function"==typeof e.initializer&&(this[e.key]=e.initializer.call(this))},finisher(i){i.createProperty(e.key,t)}};
+var it,st;class rt extends m{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){var t,e;const i=super.createRenderRoot();return null!==(t=(e=this.renderOptions).renderBefore)&&void 0!==t||(e.renderBefore=i.firstChild),i}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{var s,r;const o=null!==(s=null==i?void 0:i.renderBefore)&&void 0!==s?s:e;let n=o._$litPart$;if(void 0===n){const t=null!==(r=null==i?void 0:i.renderBefore)&&void 0!==r?r:null;o._$litPart$=n=new K(e.insertBefore(C(),t),t,void 0,null!=i?i:{})}return n._$AI(t),n})(e,this.renderRoot,this.renderOptions)}connectedCallback(){var t;super.connectedCallback(),null===(t=this._$Do)||void 0===t||t.setConnected(!0)}disconnectedCallback(){var t;super.disconnectedCallback(),null===(t=this._$Do)||void 0===t||t.setConnected(!1)}render(){return U}}rt.finalized=!0,rt._$litElement$=!0,null===(it=globalThis.litElementHydrateSupport)||void 0===it||it.call(globalThis,{LitElement:rt});const ot=globalThis.litElementPolyfillSupport;null==ot||ot({LitElement:rt}),(null!==(st=globalThis.litElementVersions)&&void 0!==st?st:globalThis.litElementVersions=[]).push("3.3.3");
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+const nt=t=>e=>"function"==typeof e?((t,e)=>(customElements.define(t,e),e))(t,e):((t,e)=>{const{kind:i,elements:s}=e;return{kind:i,elements:s,finisher(e){customElements.define(t,e)}}})(t,e),at=(t,e)=>"method"===e.kind&&e.descriptor&&!("value"in e.descriptor)?{...e,finisher(i){i.createProperty(e.key,t)}}:{kind:"field",key:Symbol(),placement:"own",descriptor:{},originalKey:e.key,initializer(){"function"==typeof e.initializer&&(this[e.key]=e.initializer.call(this))},finisher(i){i.createProperty(e.key,t)}};
 /**
  * @license
  * Copyright 2017 Google LLC
@@ -125,13 +125,13 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
         <path
             d="M5,9V21H1V9H5M9,21A2,2 0 0,1 7,19V9C7,8.45 7.22,7.95 7.59,7.59L14.17,1L15.23,2.06C15.5,2.33 15.67,2.7 15.67,3.11L15.64,3.43L14.69,8H21C22.11,8 23,8.9 23,10V12C23,12.26 22.95,12.5 22.86,12.73L19.84,19.78C19.54,20.5 18.83,21 18,21H9M9,19H18.03L21,12V10H12.21L13.34,4.68L9,9.03V19Z" />
     </svg>
-`,Et=V`
+`,Lt=V`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
         <title>volume-high</title>
         <path
             d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z" />
     </svg>
-`,Lt=V` <svg
+`,Et=V` <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24">
     <title>volume-off</title>
@@ -177,11 +177,11 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
                 >
                     ${ft}
                 </button>
-            `}return B}_renderThumbnail(t){return""==t.thumbnail?V`<div class="empty-thumbnail thumbnail">
+            `}return z}_renderThumbnail(t){return""==t.thumbnail?V`<div class="empty-thumbnail thumbnail">
                 <ha-icon icon="mdi:music-box"></ha-icon>
             </div>`:V`
             <img class="thumbnail" src="${t.thumbnail}" />
-        `}async _fireNavigateEvent(t){this.dispatchEvent(new CustomEvent("navigate",{detail:{action:t}}))}async _startRadio(t){this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!1}),this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:t,media_content_type:"vid_channel"})}async _play(t){"PLAYLIST_GOTO_TRACK"!=t.media_content_type?pt.includes(t.media_class)&&this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:t.media_content_id,media_content_type:t.media_content_type}):this.hass.callService("ytube_music_player","call_method",{entity_id:this.entity.entity_id,command:"goto_track",parameters:t.media_content_id})}static get styles(){return[o`
+        `}async _fireNavigateEvent(t){this.dispatchEvent(new CustomEvent("navigate",{detail:{action:t}}))}async _startRadio(t){this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!1}),this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:t,media_content_type:"vid_channel"})}async _play(t){"PLAYLIST_GOTO_TRACK"!=t.media_content_type?pt.includes(t.media_class)&&this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:t.media_content_id,media_content_type:t.media_content_type}):this.hass.callService("ytube_music_player","call_method",{entity_id:this.entity.entity_id,command:"goto_track",parameters:t.media_content_id})}static get styles(){return[n`
                 :host {
                     display: grid;
                     grid-template-columns: 1fr min-content min-content;
@@ -286,7 +286,7 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
                     height: 18px;
                     fill: currentColor;
                 }
-            `]}};t([dt()],Pt.prototype,"entity",void 0),t([dt()],Pt.prototype,"hass",void 0),t([dt()],Pt.prototype,"element",void 0),t([dt()],Pt.prototype,"current",void 0),Pt=t([ot("ytmusic-list-item")],Pt);let Ht=class extends rt{constructor(){super(...arguments),this._actions=[],this._hasAdditionalActions=!1}firstUpdated(t){this.element.can_expand?this._primaryAction="more":this._primaryAction="play",this._hasAdditionalActions=this.element.can_expand==this.element.can_play?this.element.can_expand:"track"==this.element.media_content_type,this.requestUpdate()}render(){return V`
+            `]}};t([dt()],Pt.prototype,"entity",void 0),t([dt()],Pt.prototype,"hass",void 0),t([dt()],Pt.prototype,"element",void 0),t([dt()],Pt.prototype,"current",void 0),Pt=t([nt("ytmusic-list-item")],Pt);let Ht=class extends rt{constructor(){super(...arguments),this._actions=[],this._hasAdditionalActions=!1}firstUpdated(t){this.element.can_expand?this._primaryAction="more":this._primaryAction="play",this._hasAdditionalActions=this.element.can_expand==this.element.can_play?this.element.can_expand:"track"==this.element.media_content_type,this.requestUpdate()}render(){return V`
             <div class="grid-item" @click=${this._performPrimaryAction}>
                 <div>${this._renderThumbnail(this.element)}</div>
                 <span class="title"> ${this.element.title}</span>
@@ -319,9 +319,9 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
                 >
                     ${ft}
                 </button>
-            `}return B}_renderThumbnail(t){return""==t.thumbnail?V`<div class="empty-thumbnail thumbnail">
+            `}return z}_renderThumbnail(t){return""==t.thumbnail?V`<div class="empty-thumbnail thumbnail">
                 <ha-icon icon="mdi:music-box"></ha-icon>
-            </div>`:V`<img class="thumbnail" src="${t.thumbnail}" />`}async _fireNavigateEvent(t){this.dispatchEvent(new CustomEvent("navigate",{detail:{action:t}}))}async _startRadio(t){this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!1}),this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:t,media_content_type:"vid_channel"})}async _play(t){"PLAYLIST_GOTO_TRACK"!=t.media_content_type?pt.includes(t.media_class)&&this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:t.media_content_id,media_content_type:t.media_content_type}):this.hass.callService("ytube_music_player","call_method",{entity_id:this.entity.entity_id,command:"goto_track",parameters:t.media_content_id})}static get styles(){return[o`
+            </div>`:V`<img class="thumbnail" src="${t.thumbnail}" />`}async _fireNavigateEvent(t){this.dispatchEvent(new CustomEvent("navigate",{detail:{action:t}}))}async _startRadio(t){this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!1}),this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:t,media_content_type:"vid_channel"})}async _play(t){"PLAYLIST_GOTO_TRACK"!=t.media_content_type?pt.includes(t.media_class)&&this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:t.media_content_id,media_content_type:t.media_content_type}):this.hass.callService("ytube_music_player","call_method",{entity_id:this.entity.entity_id,command:"goto_track",parameters:t.media_content_id})}static get styles(){return[n`
                 :host {
                 }
 
@@ -402,7 +402,7 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
                     height: 18px;
                     fill: currentColor;
                 }
-            `]}};t([dt()],Ht.prototype,"entity",void 0),t([dt()],Ht.prototype,"hass",void 0),t([dt()],Ht.prototype,"element",void 0),t([dt()],Ht.prototype,"current",void 0),Ht=t([ot("ytmusic-grid-item")],Ht);let Rt=class extends rt{constructor(){super(...arguments),this.columns=1,this.grid=!1}render(){if(4==this.state)return V`<div class="loading">Loading...</div>`;if(8==this.state)return V`<div class="empty">No results</div>`;if(16==this.state)return V`<div class="error">Unknown Error</div>`;if(2==this.state){if(0==this.elements.length)return V``;let t;return t=this.grid?this.elements.map(t=>V`
+            `]}};t([dt()],Ht.prototype,"entity",void 0),t([dt()],Ht.prototype,"hass",void 0),t([dt()],Ht.prototype,"element",void 0),t([dt()],Ht.prototype,"current",void 0),Ht=t([nt("ytmusic-grid-item")],Ht);let Rt=class extends rt{constructor(){super(...arguments),this.columns=1,this.grid=!1}render(){if(4==this.state)return V`<div class="loading">Loading...</div>`;if(8==this.state)return V`<div class="empty">No results</div>`;if(16==this.state)return V`<div class="error">Unknown Error</div>`;if(2==this.state){if(0==this.elements.length)return V``;let t;return t=this.grid?this.elements.map(t=>V`
                         <ytmusic-grid-item
                             .hass=${this.hass}
                             .entity=${this.entity}
@@ -425,7 +425,7 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
                 >
                     ${t}
                 </div>
-            `}}_is_current(t){return null!=this.entity&&(("number"==typeof(e=t.media_content_id)||"string"==typeof e&&""!==e.trim())&&!isNaN(e)&&("current_track"in this.entity.attributes&&parseInt(t.media_content_id)-1==this.entity.attributes.current_track));var e}async _fireNavigateEvent(t){this.dispatchEvent(new CustomEvent("navigate",{detail:{action:t}}))}static get styles(){return[o`
+            `}}_is_current(t){return null!=this.entity&&(("number"==typeof(e=t.media_content_id)||"string"==typeof e&&""!==e.trim())&&!isNaN(e)&&("current_track"in this.entity.attributes&&parseInt(t.media_content_id)-1==this.entity.attributes.current_track));var e}async _fireNavigateEvent(t){this.dispatchEvent(new CustomEvent("navigate",{detail:{action:t}}))}static get styles(){return[n`
                 .container {
                     display: grid;
                     grid-template-columns: repeat(
@@ -445,7 +445,7 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
                     height: 100px;
                     color: var(--primary-text-color, #ffffff);
                 }
-            `]}};t([dt()],Rt.prototype,"entity",void 0),t([dt()],Rt.prototype,"hass",void 0),t([dt()],Rt.prototype,"elements",void 0),t([dt()],Rt.prototype,"state",void 0),t([lt()],Rt.prototype,"columns",void 0),t([lt()],Rt.prototype,"grid",void 0),Rt=t([ot("ytmusic-list")],Rt);let Mt=class extends rt{constructor(){super(...arguments),this.hideSearch=!1,this._browseHistory=[],this._previousBrowseHistory=[]}updated(t){t.has("initialAction")&&(this._browseHistory=[],this._previousBrowseHistory=[],this._browse(this.initialAction))}firstUpdated(t){this._polrYTubeList=this.renderRoot.querySelector("ytmusic-list"),this._searchTextField=this.renderRoot.querySelector("#query")}render(){return V`
+            `]}};t([dt()],Rt.prototype,"entity",void 0),t([dt()],Rt.prototype,"hass",void 0),t([dt()],Rt.prototype,"elements",void 0),t([dt()],Rt.prototype,"state",void 0),t([lt()],Rt.prototype,"columns",void 0),t([lt()],Rt.prototype,"grid",void 0),Rt=t([nt("ytmusic-list")],Rt);let Mt=class extends rt{constructor(){super(...arguments),this.hideSearch=!1,this._browseHistory=[],this._previousBrowseHistory=[]}updated(t){t.has("initialAction")&&(this._browseHistory=[],this._previousBrowseHistory=[],this._browse(this.initialAction))}firstUpdated(t){this._polrYTubeList=this.renderRoot.querySelector("ytmusic-list"),this._searchTextField=this.renderRoot.querySelector("#query")}render(){return V`
             <div class="container">
                 ${this._renderSearch()} ${this._renderNavigation()}
                 ${this._renderPlay()}
@@ -457,7 +457,7 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
                     columns=${this.coverNavigation?"3":"1"}
                 ></ytmusic-list>
             </div>
-        `}_renderSearch(){return this.hideSearch?B:V`
+        `}_renderSearch(){return this.hideSearch?z:V`
             <div class="search">
                 <div class="search-input-wrap">
                     <ha-icon icon="mdi:magnify" class="search-icon"></ha-icon>
@@ -475,7 +475,7 @@ var ct;null===(ct=window.HTMLSlotElement)||void 0===ct||ct.prototype.assignedEle
                     <option value="playlists">Playlists</option>
                 </select>
             </div>
-        `}loadElement(t){this._browseHistory=[],this._isSearchResults=!1,this._browse(t)}async searchExternal(t){var e;if(!t||""===t)return;const i={entity_id:null===(e=this.entity)||void 0===e?void 0:e.entity_id,query:t,limit:40};await this.hass.callService("ytube_music_player","search",i),this._fetchSearchResults()}async _browse(t){var e;if(this._polrYTubeList.state=4,this._browseHistory.push(t),(null===(e=t.children)||void 0===e?void 0:e.length)>0)this._polrYTubeList.elements=t.children,this._polrYTubeList.state=2;else try{const e={type:"media_player/browse_media",entity_id:this.entity.entity_id};null!=t.media_content_type&&(e.media_content_type=t.media_content_type),null!=t.media_content_id&&(e.media_content_id=t.media_content_id);const i=await this.hass.callWS(e);this._polrYTubeList.elements=i.children,this._polrYTubeList.state=2}catch(e){this._polrYTubeList.state=16,console.error(e,t.media_content_type,t.media_content_id)}this.requestUpdate()}async _fetchSearchResults(){var t,e;this._polrYTubeList.state=4;try{let i=await this.hass.callWS({type:"media_player/browse_media",entity_id:null===(t=this.entity)||void 0===t?void 0:t.entity_id,media_content_type:"search",media_content_id:""});(null===(e=i.children)||void 0===e?void 0:e.length)>0?(i.children.filter(t=>!t.media_content_id.startsWith("MPSP")),this._isSearchResults||(this._previousBrowseHistory=this._browseHistory),this._isSearchResults=!0,this._browseHistory=[],this._browse(i),this.requestUpdate()):this._polrYTubeList.state=8}catch(t){this._polrYTubeList.state=16,console.error(t)}}_renderNavigation(){if(this._browseHistory.length<=1&&!this._isSearchResults)return V``;let t;t=this._browseHistory.length>2?[this._browseHistory[0].title,"...",this._browseHistory[this._browseHistory.length-1].title]:this._browseHistory.map(t=>t.title);let e=V`
+        `}loadElement(t){this._browseHistory=[],this._isSearchResults=!1,this._browse(t)}async searchExternal(t){var e;if(!t||""===t)return;const i={entity_id:null===(e=this.entity)||void 0===e?void 0:e.entity_id,query:t,limit:40};await this.hass.callService("ytube_music_player","search",i),this._fetchSearchResults()}async _browse(t){var e;if(this._polrYTubeList&&this.entity){if(this._polrYTubeList.state=4,this._browseHistory.push(t),(null===(e=t.children)||void 0===e?void 0:e.length)>0)this._polrYTubeList.elements=t.children,this._polrYTubeList.state=2;else try{const e={type:"media_player/browse_media",entity_id:this.entity.entity_id};null!=t.media_content_type&&(e.media_content_type=t.media_content_type),null!=t.media_content_id&&(e.media_content_id=t.media_content_id);const i=await this.hass.callWS(e);this._polrYTubeList.elements=i.children,this._polrYTubeList.state=2}catch(e){this._polrYTubeList.state=16,console.error(e,t.media_content_type,t.media_content_id)}this.requestUpdate()}}async _fetchSearchResults(){var t,e;this._polrYTubeList.state=4;try{let i=await this.hass.callWS({type:"media_player/browse_media",entity_id:null===(t=this.entity)||void 0===t?void 0:t.entity_id,media_content_type:"search",media_content_id:""});(null===(e=i.children)||void 0===e?void 0:e.length)>0?(i.children.filter(t=>!t.media_content_id.startsWith("MPSP")),this._isSearchResults||(this._previousBrowseHistory=this._browseHistory),this._isSearchResults=!0,this._browseHistory=[],this._browse(i),this.requestUpdate()):this._polrYTubeList.state=8}catch(t){this._polrYTubeList.state=16,console.error(t)}}_renderNavigation(){if(this._browseHistory.length<=1&&!this._isSearchResults)return V``;let t;t=this._browseHistory.length>2?[this._browseHistory[0].title,"...",this._browseHistory[this._browseHistory.length-1].title]:this._browseHistory.map(t=>t.title);let e=V`
             ${
 /**
  * @license
@@ -497,7 +497,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                           >
                               ${mt}
                           </button>
-                      `:B}
+                      `:z}
                 ${this._browseHistory.length>1?V`
                           <button
                               class="icon-btn"
@@ -505,8 +505,8 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                           >
                               ${yt}
                           </button>
-                      `:B}
-                ${this._browseHistory.length>1||this._isSearchResults?V`<div class="breadcrumb">${e}</div>`:B}
+                      `:z}
+                ${this._browseHistory.length>1||this._isSearchResults?V`<div class="breadcrumb">${e}</div>`:z}
             </div>
         `}_renderPlay(){const t=this._browseHistory[this._browseHistory.length-1];if(null==t?void 0:t.can_play)return V`
                 <div class="playable_result">
@@ -518,7 +518,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                         Play
                     </button>
                 </div>
-            `}_handleSearchInput(t){13==t.keyCode&&(this._search(),this._searchTextField.blur())}async _search(){var t,e,i,s;const r=null===(t=this.shadowRoot.querySelector("#query"))||void 0===t?void 0:t.value,n=null===(e=this.renderRoot.querySelector("#filter"))||void 0===e?void 0:e.value;if(!r||""==r)return;let o;o="all"==n?{entity_id:null===(i=this.entity)||void 0===i?void 0:i.entity_id,query:r,limit:40}:{entity_id:null===(s=this.entity)||void 0===s?void 0:s.entity_id,query:r,filter:n,limit:40},await this.hass.callService("ytube_music_player","search",o),this._fetchSearchResults()}static get styles(){return[o`
+            `}_handleSearchInput(t){13==t.keyCode&&(this._search(),this._searchTextField.blur())}async _search(){var t,e,i,s;const r=null===(t=this.shadowRoot.querySelector("#query"))||void 0===t?void 0:t.value,o=null===(e=this.renderRoot.querySelector("#filter"))||void 0===e?void 0:e.value;if(!r||""==r)return;let n;n="all"==o?{entity_id:null===(i=this.entity)||void 0===i?void 0:i.entity_id,query:r,limit:40}:{entity_id:null===(s=this.entity)||void 0===s?void 0:s.entity_id,query:r,filter:o,limit:40},await this.hass.callService("ytube_music_player","search",n),this._fetchSearchResults()}static get styles(){return[n`
                 .container {
                     display: flex;
                     overflow: auto;
@@ -544,7 +544,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 }
 
                 .crumb {
-                    background-color: rgba(255, 255, 255, 0.1);
+                    background-color: rgba(111, 111, 111, 0.2);
                     padding: 4px 8px;
                     border-radius: 4px;
                     text-transform: uppercase;
@@ -567,11 +567,10 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 .search-input-wrap {
                     display: flex;
                     align-items: center;
-                    background: #1e1e1e;
-                    border: 1px solid rgba(255,255,255,0.12);
-                    border-radius: 24px;
-                    padding: 0 12px;
-                    height: 40px;
+                    background: rgba(var(--rgb-primary-text-color), 0.06);
+                    border-radius: 4px;
+                    padding: 0 8px;
+                    height: 42px;
                     gap: 4px;
                 }
 
@@ -580,7 +579,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                     background: none;
                     border: none;
                     outline: none;
-                    color: #ffffff;
+                    color: var(--primary-text-color);
                     font-size: 14px;
                     height: 100%;
                 }
@@ -591,22 +590,16 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 }
 
                 select {
-                    height: 40px;
-                    background: #1e1e1e;
-                    border: 1px solid rgba(255,255,255,0.12);
-                    border-radius: 20px;
-                    color: #ffffff;
-                    font-size: 13px;
-                    font-weight: 500;
-                    padding: 0 10px;
+                    height: 42px;
+                    background: var(--card-background-color);
+                    border: none;
+                    border-radius: 4px;
+                    color: var(--primary-text-color);
+                    font-size: 14px;
+                    padding: 0 8px;
                     cursor: pointer;
                     outline: none;
                     width: 100%;
-                }
-
-                select option {
-                    background: #282828;
-                    color: #ffffff;
                 }
 
                 .playable_result {
@@ -628,13 +621,13 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    color: #ffffff;
+                    color: var(--primary-text-color);
                     width: 30px;
                     height: 30px;
                 }
 
                 .icon-btn:hover {
-                    background: rgba(255,255,255,0.08);
+                    background: rgba(var(--rgb-primary-text-color), 0.08);
                 }
 
                 .icon-btn svg {
@@ -644,8 +637,8 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 }
 
                 .play-btn {
-                    background: #ff0000;
-                    color: #ffffff;
+                    background: var(--primary-color);
+                    color: var(--text-primary-color);
                     border: none;
                     border-radius: 4px;
                     padding: 6px 16px;
@@ -657,11 +650,12 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 .play-btn:hover {
                     opacity: 0.9;
                 }
-            `]}};t([dt()],Mt.prototype,"entity",void 0),t([dt()],Mt.prototype,"hass",void 0),t([lt()],Mt.prototype,"initialAction",void 0),t([lt()],Mt.prototype,"coverNavigation",void 0),t([lt({type:Boolean})],Mt.prototype,"hideSearch",void 0),t([dt()],Mt.prototype,"initialElements",void 0),t([dt()],Mt.prototype,"_browseHistory",void 0),t([dt()],Mt.prototype,"_previousBrowseHistory",void 0),t([dt()],Mt.prototype,"_polrYTubeList",void 0),t([dt()],Mt.prototype,"_searchTextField",void 0),t([dt()],Mt.prototype,"_isSearchResults",void 0),Mt=t([ot("ytmusic-browser")],Mt);let Tt=class extends rt{constructor(){super(),this._elements=[],this._limit=25}firstUpdated(t){this._polrYTubeBrowser=this.renderRoot.querySelector("ytmusic-browser"),this._searchTextField=this.renderRoot.querySelector("#query")}_renderResults(){return V`
+            `]}};t([dt()],Mt.prototype,"entity",void 0),t([dt()],Mt.prototype,"hass",void 0),t([lt()],Mt.prototype,"initialAction",void 0),t([lt()],Mt.prototype,"coverNavigation",void 0),t([lt({type:Boolean})],Mt.prototype,"hideSearch",void 0),t([dt()],Mt.prototype,"initialElements",void 0),t([dt()],Mt.prototype,"_browseHistory",void 0),t([dt()],Mt.prototype,"_previousBrowseHistory",void 0),t([dt()],Mt.prototype,"_polrYTubeList",void 0),t([dt()],Mt.prototype,"_searchTextField",void 0),t([dt()],Mt.prototype,"_isSearchResults",void 0),Mt=t([nt("ytmusic-browser")],Mt);let Tt=class extends rt{constructor(){super(),this._elements=[],this._limit=25}firstUpdated(t){this._polrYTubeBrowser=this.renderRoot.querySelector("ytmusic-browser"),this._searchTextField=this.renderRoot.querySelector("#query")}_renderResults(){return V`
             <ytmusic-browser
                 .hass=${this._hass}
                 .entity=${this._entity}
                 .initialAction=${this.initialAction}
+                .hideSearch=${!0}
             ></ytmusic-browser>
         `}render(){return V`
             <div class="content">
@@ -682,54 +676,72 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 </div>
                 <div class="results">${this._renderResults()}</div>
             </div>
-        `}async _fetchResults(){var t,e;try{let i=await this._hass.callWS({type:"media_player/browse_media",entity_id:null===(t=this._entity)||void 0===t?void 0:t.entity_id,media_content_type:"search",media_content_id:""});(null===(e=i.children)||void 0===e?void 0:e.length)>0&&(i.children.filter(t=>!t.media_content_id.startsWith("MPSP")),this._elements=i,this._polrYTubeBrowser.loadElement(i),this.requestUpdate())}catch(t){console.error(t)}}handleKey(t){13==t.keyCode&&(this._search(),this._searchTextField.blur())}async _search(){var t,e;const i=this.shadowRoot.querySelector("#query").value,s=this.renderRoot.querySelector("#filter").value;let r;r="all"==s?{entity_id:null===(t=this._entity)||void 0===t?void 0:t.entity_id,query:i,limit:this._limit}:{entity_id:null===(e=this._entity)||void 0===e?void 0:e.entity_id,query:i,filter:s,limit:this._limit},await this._hass.callService("ytube_music_player","search",r),this._fetchResults()}};Tt.styles=o`
+        `}async _fetchResults(){var t,e;try{let i=await this._hass.callWS({type:"media_player/browse_media",entity_id:null===(t=this._entity)||void 0===t?void 0:t.entity_id,media_content_type:"search",media_content_id:""});(null===(e=i.children)||void 0===e?void 0:e.length)>0&&(i.children.filter(t=>!t.media_content_id.startsWith("MPSP")),this._elements=i,this._polrYTubeBrowser.loadElement(i),this.requestUpdate())}catch(t){console.error(t)}}handleKey(t){13==t.keyCode&&(this._search(),this._searchTextField.blur())}async _search(){var t,e;const i=this.shadowRoot.querySelector("#query").value,s=this.renderRoot.querySelector("#filter").value;let r;r="all"==s?{entity_id:null===(t=this._entity)||void 0===t?void 0:t.entity_id,query:i,limit:this._limit}:{entity_id:null===(e=this._entity)||void 0===e?void 0:e.entity_id,query:i,filter:s,limit:this._limit},await this._hass.callService("ytube_music_player","search",r),this._fetchResults()}};Tt.styles=n`
         .search {
             display: grid;
             grid-template-columns: 1fr min-content;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
             margin-bottom: 8px;
         }
 
         input[type="search"] {
-            height: 40px;
-            background: #1e1e1e;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 24px;
-            color: #ffffff;
+            height: 42px;
+            background: rgba(var(--rgb-primary-text-color, 0, 0, 0), 0.06);
+            border: none;
+            border-radius: 4px;
+            color: var(--primary-text-color);
             font-size: 14px;
-            padding: 0 16px;
+            padding: 0 12px;
             outline: none;
             width: 100%;
             box-sizing: border-box;
         }
 
-        input[type="search"]::placeholder {
-            color: rgba(255,255,255,0.38);
-        }
-
         select {
-            height: 40px;
-            background: #1e1e1e;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 20px;
-            color: #ffffff;
-            font-size: 13px;
-            font-weight: 500;
-            padding: 0 10px;
+            height: 42px;
+            background: var(--card-background-color);
+            border: none;
+            border-radius: 4px;
+            color: var(--primary-text-color);
+            font-size: 14px;
+            padding: 0 8px;
             cursor: pointer;
             outline: none;
         }
-
-        select option {
-            background: #282828;
-            color: #ffffff;
-        }
-    `,t([dt()],Tt.prototype,"_hass",void 0),t([dt()],Tt.prototype,"_entity",void 0),t([dt()],Tt.prototype,"_limit",void 0),t([dt()],Tt.prototype,"_polrYTubeBrowser",void 0),t([dt()],Tt.prototype,"_elements",void 0),t([dt()],Tt.prototype,"_searchTextField",void 0),t([dt()],Tt.prototype,"initialAction",void 0),Tt=t([ot("ytmusic-search")],Tt);const qt=V`
+    `,t([dt()],Tt.prototype,"_hass",void 0),t([dt()],Tt.prototype,"_entity",void 0),t([dt()],Tt.prototype,"_limit",void 0),t([dt()],Tt.prototype,"_polrYTubeBrowser",void 0),t([dt()],Tt.prototype,"_elements",void 0),t([dt()],Tt.prototype,"_searchTextField",void 0),t([dt()],Tt.prototype,"initialAction",void 0),Tt=t([nt("ytmusic-search")],Tt);const qt=V`
     <svg viewBox="0 0 24 24" class="yt-icon" xmlns="http://www.w3.org/2000/svg">
         <path fill="#FF0000" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
     </svg>
-`;class Nt extends rt{constructor(){super(...arguments),this._config={},this._runOnce=!1,this._menuOpen=!1}static getConfigElement(){}static getStubConfig(){return{}}setConfig(t){if(!t.entity_id)throw new Error("entity_id must be specified");this._config=structuredClone(t),"header"in this._config||(this._config.header="Music"),"showHeader"in this._config||(this._config.showHeader=!0)}set hass(t){this._runOnce||(this._hass=t,this._entity=structuredClone(this._hass.states[this._config.entity_id]),this._runOnce=!0)}_renderSourceSelector(){var t;if(!this._hass)return V``;let e=[];for(const[i,s]of Object.entries(this._hass.states))if(i.startsWith("media_player")){if(null===(t=null==s?void 0:s.attributes)||void 0===t?void 0:t.remote_player_id)continue;if("speakers"in this._config&&!this._config.speakers.includes(i))continue;e.push([i,s.attributes.friendly_name])}return e.sort((t,e)=>t[1]<e[1]?-1:1),V`
+`;class Nt extends rt{constructor(){super(...arguments),this._config={},this._menuOpen=!1}static getConfigElement(){}static getStubConfig(){return{entity_id:"media_player.ytube_music_player"}}setConfig(t){if(!t.entity_id)throw new Error("entity_id must be specified");this._config=structuredClone(t),"header"in this._config||(this._config.header="YouTube Music Search")}set hass(t){this._hass=t;const e=this._hass.states[this._config.entity_id];vt(this._entity,e,[])||(this._entity=structuredClone(e))}render(){var t,e,i,s;const r=null===(e=null===(t=this._entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.volume_level,o=null!=r?Math.round(100*r):50,n=null===(s=null===(i=this._entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.is_volume_muted;return V`
+            <ha-card>
+                <div class="yt-header">
+                    <div class="yt-logo">
+                        ${qt}
+                        <span class="yt-title">Music</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="icon-btn" @click=${this._toggleMute}>
+                            <ha-icon icon="${n?"mdi:volume-off":"mdi:volume-high"}"></ha-icon>
+                        </button>
+                        <input
+                            type="range"
+                            class="vol-slider"
+                            min="0" max="100" step="1"
+                            .value=${String(o)}
+                            @change=${this._onVolumeChange}
+                        />
+                        ${this._renderSourceSelector()}
+                    </div>
+                </div>
+                <div class="search-wrap">
+                    <ytmusic-search
+                        ._hass=${this._hass}
+                        ._entity=${this._entity}
+                    ></ytmusic-search>
+                </div>
+            </ha-card>
+        `}_renderSourceSelector(){var t;if(!this._hass)return V``;let e=[];for(const[i,s]of Object.entries(this._hass.states))if(i.startsWith("media_player")){if(null===(t=null==s?void 0:s.attributes)||void 0===t?void 0:t.remote_player_id)continue;if("speakers"in this._config&&!this._config.speakers.includes(i))continue;e.push([i,s.attributes.friendly_name])}return e.sort((t,e)=>t[1]<e[1]?-1:1),V`
             <div class="source-wrap">
                 <button class="icon-btn cast-btn" @click=${this._toggleMenu}>
                     ${_t}
@@ -743,27 +755,9 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                             >${t[1]}</div>
                         `})}
                     </div>
-                `:B}
+                `:z}
             </div>
-        `}_toggleMenu(t){t.stopPropagation(),this._menuOpen=!this._menuOpen,this._menuOpen&&document.addEventListener("click",()=>{this._menuOpen=!1,this.requestUpdate()},{once:!0})}async _selectSource(t){var e,i;const s=null===(i=null===(e=this._entity)||void 0===e?void 0:e.attributes)||void 0===i?void 0:i.remote_player_id;this._menuOpen=!1,this.requestUpdate(),""!==t&&t!==s&&this._hass.callService("media_player","select_source",{entity_id:this._config.entity_id,source:t})}render(){return V`
-            <ha-card>
-                <div class="yt-header">
-                    <div class="yt-logo">
-                        ${qt}
-                        <span class="yt-title">${this._config.header}</span>
-                    </div>
-                    <div class="header-actions">
-                        ${this._renderSourceSelector()}
-                    </div>
-                </div>
-                <div class="content">
-                    <ytmusic-search
-                        ._hass=${this._hass}
-                        ._entity=${this._entity}>
-                    </ytmusic-search>
-                </div>
-            </ha-card>
-        `}static get styles(){return[o`
+        `}_toggleMenu(t){t.stopPropagation(),this._menuOpen=!this._menuOpen,this._menuOpen&&document.addEventListener("click",()=>{this._menuOpen=!1},{once:!0})}async _selectSource(t){var e,i;this._menuOpen=!1;const s=null===(i=null===(e=this._entity)||void 0===e?void 0:e.attributes)||void 0===i?void 0:i.remote_player_id;""!==t&&t!==s&&this._hass.callService("media_player","select_source",{entity_id:this._config.entity_id,source:t})}_onVolumeChange(t){const e=Number(t.target.value);this._hass.callService("media_player","volume_set",{entity_id:this._config.entity_id,volume_level:e/100})}async _toggleMute(){var t,e;this._hass.callService("media_player","volume_mute",{entity_id:this._config.entity_id,is_volume_muted:!(null===(e=null===(t=this._entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.is_volume_muted)})}static get styles(){return[n`
             :host {
                 --yt-bg: #0f0f0f;
                 --yt-surface: #1e1e1e;
@@ -778,7 +772,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 background: var(--yt-bg) !important;
                 display: flex;
                 flex-direction: column;
-                overflow: visible;
+                overflow: hidden;
                 border-radius: 12px;
                 color: var(--yt-text);
             }
@@ -788,24 +782,22 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                padding: 12px 16px 8px;
+                padding: 10px 16px 8px;
                 flex-shrink: 0;
-                height: 52px;
+                gap: 8px;
             }
 
             .yt-logo {
                 display: flex;
                 align-items: center;
                 gap: 6px;
+                flex-shrink: 0;
             }
 
-            .yt-icon {
-                width: 28px;
-                height: 28px;
-            }
+            .yt-icon { width: 26px; height: 26px; }
 
             .yt-title {
-                font-size: 18px;
+                font-size: 17px;
                 font-weight: 600;
                 color: var(--yt-text);
                 letter-spacing: 0.3px;
@@ -814,12 +806,60 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
             .header-actions {
                 display: flex;
                 align-items: center;
-                gap: 4px;
+                gap: 6px;
             }
 
-            /* ── CONTENT ── */
-            .content {
-                padding: 0 8px 12px 8px;
+            /* ── VOLUME ── */
+            .vol-slider {
+                width: 80px;
+                -webkit-appearance: none;
+                appearance: none;
+                height: 3px;
+                border-radius: 2px;
+                background: rgba(255,255,255,0.25);
+                outline: none;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+
+            .vol-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: var(--yt-text);
+                cursor: pointer;
+            }
+
+            .vol-slider::-moz-range-thumb {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: var(--yt-text);
+                cursor: pointer;
+                border: none;
+            }
+
+            /* ── SEARCH WRAPPER ── */
+            .search-wrap {
+                flex: 1;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                padding: 0 8px 8px;
+            }
+
+            ytmusic-search {
+                flex: 1;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                --primary-text-color: #ffffff;
+                --rgb-primary-text-color: 255, 255, 255;
+                --primary-color: #ff0000;
+                --rgb-primary-color: 255, 0, 0;
+                --card-background-color: #1e1e1e;
+                color: #ffffff;
             }
 
             /* ── ICON BUTTONS ── */
@@ -833,67 +873,63 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 align-items: center;
                 justify-content: center;
                 color: var(--yt-text);
-                width: 36px;
-                height: 36px;
+                --mdc-icon-size: 20px;
+                flex-shrink: 0;
             }
 
             .icon-btn:hover { background: rgba(255,255,255,0.08); }
 
             .icon-btn svg {
-                width: 22px;
-                height: 22px;
+                width: 20px;
+                height: 20px;
                 fill: currentColor;
             }
 
-            /* ── SOURCE MENU ── */
+            .cast-btn svg { width: 18px; height: 18px; }
+
+            /* ── SOURCE DROPDOWN ── */
             .source-wrap { position: relative; }
 
             .source-menu {
                 position: absolute;
+                top: 100%;
                 right: 0;
-                top: 44px;
-                background: var(--yt-surface2);
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.5);
                 z-index: 999;
-                min-width: 220px;
-                max-height: 40vh;
-                overflow-y: scroll;
+                background: #2a2a2a;
+                border-radius: 8px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+                min-width: 200px;
+                max-height: 280px;
+                overflow-y: auto;
+                border: 1px solid rgba(255,255,255,0.1);
             }
 
             .menu-item {
-                padding: 12px 16px;
+                padding: 11px 16px;
                 cursor: pointer;
                 font-size: 14px;
                 color: var(--yt-text);
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
             }
 
             .menu-item:hover { background: rgba(255,255,255,0.08); }
-
-            .menu-item.selected {
-                color: var(--yt-red);
-                font-weight: 600;
-            }
-        `]}}t([lt()],Nt.prototype,"_config",void 0),t([lt()],Nt.prototype,"_hass",void 0),t([dt()],Nt.prototype,"_entity",void 0),t([dt()],Nt.prototype,"_runOnce",void 0),t([dt()],Nt.prototype,"_menuOpen",void 0),customElements.define("ytmusic-search-card",Nt),window.customCards=window.customCards||[],window.customCards.push({type:"ytmusic-search-card",name:"YTMusic Search",description:"Requires the ytube_media_player integration"});let Ot=class extends rt{constructor(){super(...arguments),this.value=0,this.min=0,this.max=100,this.step=1}render(){return V`<ha-slider
+            .menu-item.selected { color: var(--yt-red); font-weight: 600; }
+        `]}}t([lt()],Nt.prototype,"_config",void 0),t([dt()],Nt.prototype,"_entity",void 0),t([dt()],Nt.prototype,"_menuOpen",void 0),customElements.define("ytmusic-search-card",Nt),window.customCards=window.customCards||[],window.customCards.push({type:"ytmusic-search-card",name:"YTMusic Search",description:"Requires the ytube_media_player integration"});let Ot=class extends rt{constructor(){super(...arguments),this.value=0,this.min=0,this.max=100,this.step=1}render(){return V`<ha-slider
             min=${this.min}
             max=${this.max}
             step=${this.step}
             .value=${this.value}
             @change=${t=>{this.value=t.target.value,this.dispatchEvent(new Event("change",{bubbles:!0,composed:!0}))}}
-        ></ha-slider>`}};Ot.styles=o`
+        ></ha-slider>`}};Ot.styles=n`
         :host {
             display: contents;
         }
         ha-slider {
             width: 100%;
         }
-    `,t([lt({type:Number})],Ot.prototype,"value",void 0),t([lt({type:Number})],Ot.prototype,"min",void 0),t([lt({type:Number})],Ot.prototype,"max",void 0),t([lt({type:Number})],Ot.prototype,"step",void 0),Ot=t([ot("ytmusic-slider")],Ot);let Vt=class extends rt{async connectedCallback(){super.connectedCallback(),this._trackProgress()}disconnectedCallback(){super.disconnectedCallback(),clearInterval(this.tracker),this.tracker=null}firstUpdated(t){var e,i;this.volumeSlider=this.renderRoot.querySelector("#volume"),this.volumeSlider&&(this.volumeSlider.value=100*(null===(i=null===(e=this.entity)||void 0===e?void 0:e.attributes)||void 0===i?void 0:i.volume_level)),this.progressSlider=this.renderRoot.querySelector("#progressSlider")}render(){var t,e;return V`
+    `,t([lt({type:Number})],Ot.prototype,"value",void 0),t([lt({type:Number})],Ot.prototype,"min",void 0),t([lt({type:Number})],Ot.prototype,"max",void 0),t([lt({type:Number})],Ot.prototype,"step",void 0),Ot=t([nt("ytmusic-slider")],Ot);let Vt=class extends rt{constructor(){super(...arguments),this._repeatActive=void 0,this._shuffleActive=void 0}async connectedCallback(){super.connectedCallback(),this._trackProgress()}disconnectedCallback(){super.disconnectedCallback(),clearInterval(this.tracker),this.tracker=null}firstUpdated(t){var e,i;this.volumeSlider=this.renderRoot.querySelector("#volume"),this.volumeSlider&&(this.volumeSlider.value=100*(null===(i=null===(e=this.entity)||void 0===e?void 0:e.attributes)||void 0===i?void 0:i.volume_level)),this.progressSlider=this.renderRoot.querySelector("#progressSlider")}render(){var t,e;return V`
             <div class="volume-row">
                 <button class="icon-btn" @click=${this._toggleMute}>
-                    ${(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.is_volume_muted)?Lt:Et}
+                    ${(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.is_volume_muted)?Et:Lt}
                 </button>
                 <ytmusic-slider
                     id="volume"
@@ -928,7 +964,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
             <button class="icon-btn" @click=${this._skipPrevious}>
                 ${$t}
             </button>
-        `}_renderProgress(){var t,e,i,s,r;let n=ut(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.media_duration);return V`
+        `}_renderProgress(){var t,e,i,s,r;let o=ut(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.media_duration);return V`
             <div class="time">
                 <span>${this.progressTime}</span>
                 <ytmusic-slider
@@ -938,21 +974,21 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                     max=${Math.round(null!==(r=null===(s=null===(i=this.entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.media_duration)&&void 0!==r?r:0)}
                     @change=${this._seekProgress}
                 ></ytmusic-slider>
-                <span>${n}</span>
+                <span>${o}</span>
             </div>
         `}_renderRadioButton(){return V`
             <button class="icon-btn" @click=${this._startRadio}>
                 ${ft}
             </button>
-        `}_renderRepeat(){return V`
-            <button class="icon-btn" @click=${this._changeRepeat}>
+        `}_renderRepeat(){var t,e,i,s;const r=void 0!==this._repeatActive?this._repeatActive:!(!(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.repeat)||"off"===(null===(s=null===(i=this.entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.repeat));return V`
+            <button class="icon-btn ${r?"active":""}" @click=${this._changeRepeat}>
                 ${bt}
             </button>
-        `}_renderShuffle(){return V`
-            <button class="icon-btn" @click=${this._shuffleList}>
+        `}_renderShuffle(){var t,e;const i=void 0!==this._shuffleActive?this._shuffleActive:!!(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.shuffle);return V`
+            <button class="icon-btn ${i?"active":""}" @click=${this._shuffleList}>
                 ${xt}
             </button>
-        `}async _changeRepeat(){var t,e;let i;switch(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.repeat){case"off":i="one";break;case"one":i="all";break;case"all":i="off"}this.hass.callService("media_player","repeat_set",{entity_id:this.entity.entity_id,repeat:i})}async _changeVolume(){this.hass.callService("media_player","volume_set",{entity_id:this.entity.entity_id,volume_level:this.volumeSlider.value/100})}async _likeSong(){var t;await this.hass.callService("ytube_music_player","rate_track",{entity_id:null===(t=this.entity)||void 0===t?void 0:t.entity_id,rating:"thumb_toggle_up_middle"}),this.requestUpdate()}async _seekProgress(){let t=this.renderRoot.querySelector("#progressSlider");this.hass.callService("media_player","media_seek",{entity_id:this.entity.entity_id,seek_position:t.value})}async _shuffleList(){var t,e;const i=null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.shuffle;this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!i})}async _skipNext(){this.hass.callService("media_player","media_next_track",{entity_id:this.entity.entity_id})}async _startRadio(){var t,e;await this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!1}),this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.videoId,media_content_type:"vid_channel"})}async _toggleMute(){var t,e;this.hass.callService("media_player","volume_mute",{entity_id:this.entity.entity_id,is_volume_muted:!(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.is_volume_muted)})}async _trackProgress(){var t,e,i,s,r,n;let o=Date.now(),a=Date.parse(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.media_position_updated_at),l=(null===(s=null===(i=this.entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.media_position)+(o-a)/1e3;null!=this.progressSlider&&null!=(null===(n=null===(r=this.entity)||void 0===r?void 0:r.attributes)||void 0===n?void 0:n.media_position)&&(this.progressSlider.value=Math.round(l),this.progressTime=ut(l)),this.tracker||(this.tracker=setInterval(()=>this._trackProgress(),1e3))}async _skipPrevious(){this.hass.callService("media_player","media_previous_track",{entity_id:this.entity.entity_id})}async _togglePlayPause(){this.hass.callService("media_player","media_play_pause",{entity_id:this.entity.entity_id})}static get styles(){return[o`
+        `}async _changeRepeat(){var t,e;let i;switch(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.repeat){case"off":i="one";break;case"one":i="all";break;case"all":i="off"}this._repeatActive="off"!==i,this.hass.callService("media_player","repeat_set",{entity_id:this.entity.entity_id,repeat:i}),this.requestUpdate()}async _changeVolume(){this.hass.callService("media_player","volume_set",{entity_id:this.entity.entity_id,volume_level:this.volumeSlider.value/100})}async _likeSong(){var t;await this.hass.callService("ytube_music_player","rate_track",{entity_id:null===(t=this.entity)||void 0===t?void 0:t.entity_id,rating:"thumb_toggle_up_middle"}),this.requestUpdate()}async _seekProgress(){let t=this.renderRoot.querySelector("#progressSlider");this.hass.callService("media_player","media_seek",{entity_id:this.entity.entity_id,seek_position:t.value})}async _shuffleList(){var t,e;const i=null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.shuffle;this._shuffleActive=!i,this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!i}),this.requestUpdate()}async _skipNext(){this.hass.callService("media_player","media_next_track",{entity_id:this.entity.entity_id})}async _startRadio(){var t,e;await this.hass.callService("media_player","shuffle_set",{entity_id:this.entity.entity_id,shuffle:!1}),this.hass.callService("media_player","play_media",{entity_id:this.entity.entity_id,media_content_id:null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.videoId,media_content_type:"vid_channel"})}async _toggleMute(){var t,e;this.hass.callService("media_player","volume_mute",{entity_id:this.entity.entity_id,is_volume_muted:!(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.is_volume_muted)})}async _trackProgress(){var t,e,i,s,r,o;let n=Date.now(),a=Date.parse(null===(e=null===(t=this.entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.media_position_updated_at),l=(null===(s=null===(i=this.entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.media_position)+(n-a)/1e3;null!=this.progressSlider&&null!=(null===(o=null===(r=this.entity)||void 0===r?void 0:r.attributes)||void 0===o?void 0:o.media_position)&&(this.progressSlider.value=Math.round(l),this.progressTime=ut(l)),this.tracker||(this.tracker=setInterval(()=>this._trackProgress(),1e3))}async _skipPrevious(){this.hass.callService("media_player","media_previous_track",{entity_id:this.entity.entity_id})}async _togglePlayPause(){this.hass.callService("media_player","media_play_pause",{entity_id:this.entity.entity_id})}static get styles(){return[n`
                 :host {
                     display: grid;
                     gap: 4px;
@@ -972,6 +1008,10 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
 
                 .icon-btn:hover {
                     background: rgba(var(--rgb-primary-text-color), 0.08);
+                }
+
+                .icon-btn.active {
+                    color: var(--primary-color);
                 }
 
                 .icon-btn svg {
@@ -1027,11 +1067,11 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 #progressSlider {
                     --md-sys-color-primary: var(--primary-color);
                 }
-            `]}};t([lt()],Vt.prototype,"hass",void 0),t([lt()],Vt.prototype,"entity",void 0),t([lt()],Vt.prototype,"progressTime",void 0),Vt=t([ot("ytmusic-media-control")],Vt);const Ut={it:["Per te","Scelte rapide","Dalla community","Radio per te","Playlist","Recenti"],en:["For You","Quick picks","From the community","Radio for you","Playlists","Recent"]},Bt={it:"Brani, album, artisti...",en:"Songs, albums, artists..."};function zt(){return(navigator.language||"en").toLowerCase().startsWith("it")?"it":"en"}const jt=function(){var t;const e=zt(),i=null!==(t=Ut[e])&&void 0!==t?t:Ut.en;return[{label:i[0],source:"root",titleKey:"home"},{label:i[1],source:"home",titleKey:"scelte"},{label:i[2],source:"home",titleKey:"community"},{label:i[3],source:"home",titleKey:"radio"},{label:i[4],source:"root",titleKey:"playlist"},{label:i[5],source:"root",titleKey:"last played"}]}(),It=V`
+            `]}};t([lt()],Vt.prototype,"hass",void 0),t([lt()],Vt.prototype,"entity",void 0),t([dt()],Vt.prototype,"_repeatActive",void 0),t([dt()],Vt.prototype,"_shuffleActive",void 0),t([lt()],Vt.prototype,"progressTime",void 0),Vt=t([nt("ytmusic-media-control")],Vt);const Ut={it:["Per te","Scelte rapide","Dalla community","Radio per te","Playlist","Recenti"],en:["For You","Quick picks","From the community","Radio for you","Playlists","Recent"]},zt={it:"Brani, album, artisti...",en:"Songs, albums, artists..."};function Bt(){return(navigator.language||"en").toLowerCase().startsWith("it")?"it":"en"}const jt=function(){var t;const e=Bt(),i=null!==(t=Ut[e])&&void 0!==t?t:Ut.en;return[{label:i[0],source:"root",titleKey:"home"},{label:i[1],source:"home",titleKey:"scelte"},{label:i[2],source:"home",titleKey:"community"},{label:i[3],source:"home",titleKey:"radio"},{label:i[4],source:"root",titleKey:"playlist"},{label:i[5],source:"root",titleKey:"last played"}]}(),It=V`
     <svg viewBox="0 0 24 24" class="yt-icon" xmlns="http://www.w3.org/2000/svg">
         <path fill="#FF0000" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
     </svg>
-`,Yt={it:{nowPlaying:"In riproduzione",tabPlay:"Riproduzione",queue:"In coda",noQueue:"Nessuna coda attiva"},en:{nowPlaying:"Now Playing",tabPlay:"Playing",queue:"Queue",noQueue:"No active queue"}};function Ft(t){var e,i;return null!==(i=(null!==(e=Yt[zt()])&&void 0!==e?e:Yt.en)[t])&&void 0!==i?i:t}class Dt extends rt{constructor(){super(...arguments),this._config={},this._menuOpen=!1,this._playerExpanded=!1,this._showQueue=!1,this._queueTracks=[],this._queueLoading=!1,this._activeFilter=0,this._searchActive=!1,this._rootItems=[],this._homeItems=[],this._rootLoaded=!1}static getConfigElement(){}static getStubConfig(){return{entity_id:"media_player.ytube_music_player",header:"YouTube Music"}}setConfig(t){if(!t.entity_id)throw new Error("entity_id must be specified");this._config=structuredClone(t),"header"in this._config||(this._config.header="YouTube Music"),"initialAction"in this._config||(this._config.initialAction=new ht,this._config.initialAction.title=Ut[zt()][0],this._config.initialAction.media_content_type=null,this._config.initialAction.media_content_id=null),"coverNavigation"in this._config||(this._config.coverNavigation=!0)}set hass(t){this._hass=t;const e=this._hass.states[this._config.entity_id];vt(this._entity,e,[])||(this._entity=structuredClone(e))}updated(t){super.updated(t),t.has("_entity")&&this._entity&&!this._rootLoaded&&(this._rootLoaded=!0,this._loadRoot())}async _loadRoot(){try{const t=await this._hass.callWS({type:"media_player/browse_media",entity_id:this._config.entity_id});this._rootItems=((null==t?void 0:t.children)||[]).filter(t=>{var e;return!(null===(e=t.media_content_id)||void 0===e?void 0:e.startsWith("MPSP"))}),console.log("[YTube] root items:",this._rootItems.map(t=>`${t.title} [${t.media_content_type}]`));const e=this._rootItems.find(t=>{var e;return"home"===(null===(e=t.title)||void 0===e?void 0:e.toLowerCase())})||this._rootItems[0];if(e)try{const t=await this._hass.callWS({type:"media_player/browse_media",entity_id:this._config.entity_id,media_content_type:e.media_content_type,media_content_id:e.media_content_id});this._homeItems=((null==t?void 0:t.children)||[]).filter(t=>{var e;return!(null===(e=t.media_content_id)||void 0===e?void 0:e.startsWith("MPSP"))})}catch(t){console.error("YTube: failed to load home sections",t)}await this.updateComplete,this._navigateToFilter(this._activeFilter)}catch(t){console.error("YTube: failed to load root items",t)}}_navigateToFilter(t){if(!this._browser||0===this._rootItems.length)return;const e=jt[t],i="home"===e.source?this._homeItems:this._rootItems;let s=i.find(t=>(t=>{var e;return null!==(e=null==t?void 0:t.toLowerCase())&&void 0!==e?e:""})(t.title).includes(e.titleKey));s||0!==t||(s=this._rootItems[0]),s&&this._browser.loadElement(s)}_onPillsWheel(t){0!==t.deltaY&&(t.preventDefault(),t.currentTarget.scrollLeft+=t.deltaY)}render(){var t;return V`
+`,Yt={it:{nowPlaying:"In riproduzione",tabPlay:"Riproduzione",queue:"In coda",noQueue:"Nessuna coda attiva"},en:{nowPlaying:"Now Playing",tabPlay:"Playing",queue:"Queue",noQueue:"No active queue"}};function Ft(t){var e,i;return null!==(i=(null!==(e=Yt[Bt()])&&void 0!==e?e:Yt.en)[t])&&void 0!==i?i:t}class Dt extends rt{constructor(){super(...arguments),this._config={},this._menuOpen=!1,this._playerExpanded=!1,this._showQueue=!1,this._queueTracks=[],this._queueLoading=!1,this._activeFilter=0,this._searchActive=!1,this._rootItems=[],this._homeItems=[],this._rootLoaded=!1}static getConfigElement(){}static getStubConfig(){return{entity_id:"media_player.ytube_music_player",header:"YouTube Music"}}setConfig(t){if(!t.entity_id)throw new Error("entity_id must be specified");this._config=structuredClone(t),"header"in this._config||(this._config.header="YouTube Music"),"initialAction"in this._config||(this._config.initialAction=new ht,this._config.initialAction.title=Ut[Bt()][0],this._config.initialAction.media_content_type=null,this._config.initialAction.media_content_id=null),"coverNavigation"in this._config||(this._config.coverNavigation=!0)}set hass(t){this._hass=t;const e=this._hass.states[this._config.entity_id];vt(this._entity,e,[])||(this._entity=structuredClone(e))}updated(t){super.updated(t),t.has("_entity")&&this._entity&&!this._rootLoaded&&(this._rootLoaded=!0,this._loadRoot())}async _loadRoot(){try{const t=await this._hass.callWS({type:"media_player/browse_media",entity_id:this._config.entity_id});this._rootItems=((null==t?void 0:t.children)||[]).filter(t=>{var e;return!(null===(e=t.media_content_id)||void 0===e?void 0:e.startsWith("MPSP"))}),console.log("[YTube] root items:",this._rootItems.map(t=>`${t.title} [${t.media_content_type}]`));const e=this._rootItems.find(t=>{var e;return"home"===(null===(e=t.title)||void 0===e?void 0:e.toLowerCase())})||this._rootItems[0];if(e)try{const t=await this._hass.callWS({type:"media_player/browse_media",entity_id:this._config.entity_id,media_content_type:e.media_content_type,media_content_id:e.media_content_id});this._homeItems=((null==t?void 0:t.children)||[]).filter(t=>{var e;return!(null===(e=t.media_content_id)||void 0===e?void 0:e.startsWith("MPSP"))})}catch(t){console.error("YTube: failed to load home sections",t)}await this.updateComplete,this._browser&&await this._browser.updateComplete,this._navigateToFilter(this._activeFilter)}catch(t){console.error("YTube: failed to load root items",t)}}_navigateToFilter(t){if(!this._browser||0===this._rootItems.length)return;const e=jt[t],i="home"===e.source?this._homeItems:this._rootItems;let s=i.find(t=>(t=>{var e;return null!==(e=null==t?void 0:t.toLowerCase())&&void 0!==e?e:""})(t.title).includes(e.titleKey));s||0!==t||(s=this._rootItems[0]),s&&this._browser.loadElement(s)}_onPillsWheel(t){0!==t.deltaY&&(t.preventDefault(),t.currentTarget.scrollLeft+=t.deltaY)}render(){var t;return V`
             <ha-card>
                 ${this._searchActive?this._renderSearchHeader():this._renderHeader()}
                 <div class="pills-container" @wheel=${this._onPillsWheel}>
@@ -1053,8 +1093,8 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                         .hideSearch=${!0}
                     ></ytmusic-browser>
                 </div>
-                ${"off"!==(null===(t=this._entity)||void 0===t?void 0:t.state)?this._renderMiniPlayer():B}
-                ${this._playerExpanded?this._renderFullPlayer():B}
+                ${"off"!==(null===(t=this._entity)||void 0===t?void 0:t.state)?this._renderMiniPlayer():z}
+                ${this._playerExpanded?this._renderFullPlayer():z}
             </ha-card>
         `}_renderHeader(){return V`
             <div class="yt-header">
@@ -1078,7 +1118,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                     type="search"
                     class="search-input"
                     id="searchInput"
-                    placeholder="${Bt[zt()]}"
+                    placeholder="${zt[Bt()]}"
                     @keyup=${this._handleSearchKey}
                     autofocus
                 />
@@ -1097,9 +1137,9 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                             >${t[1]}</div>
                         `})}
                     </div>
-                `:B}
+                `:z}
             </div>
-        `}_renderMiniPlayer(){var t,e,i,s,r,n,o,a,l;const d=(null===(e=null===(t=this._entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.entity_picture_local)||(null===(s=null===(i=this._entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.entity_picture),c=(null===(n=null===(r=this._entity)||void 0===r?void 0:r.attributes)||void 0===n?void 0:n.media_title)||"Sconosciuto",h=(null===(a=null===(o=this._entity)||void 0===o?void 0:o.attributes)||void 0===a?void 0:a.media_artist)||"",p="playing"===(null===(l=this._entity)||void 0===l?void 0:l.state),u=this._getProgress();return V`
+        `}_renderMiniPlayer(){var t,e,i,s,r,o,n,a,l;const d=(null===(e=null===(t=this._entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.entity_picture_local)||(null===(s=null===(i=this._entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.entity_picture),c=(null===(o=null===(r=this._entity)||void 0===r?void 0:r.attributes)||void 0===o?void 0:o.media_title)||"Sconosciuto",h=(null===(a=null===(n=this._entity)||void 0===n?void 0:n.attributes)||void 0===a?void 0:a.media_artist)||"",p="playing"===(null===(l=this._entity)||void 0===l?void 0:l.state),u=this._getProgress();return V`
             <div class="mini-player" @click=${()=>{this._playerExpanded=!0}}>
                 <div class="mini-progress-bar">
                     <div class="mini-progress-fill" style="width: ${u}%"></div>
@@ -1107,7 +1147,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 ${d?V`<img class="mini-art" src="${d}">`:V`<div class="mini-art-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
                 <div class="mini-info">
                     <div class="mini-title">${c}</div>
-                    ${h?V`<div class="mini-artist">${h}</div>`:B}
+                    ${h?V`<div class="mini-artist">${h}</div>`:z}
                 </div>
                 <button class="mini-btn" @click=${t=>{t.stopPropagation(),this._togglePlayPause()}}>
                     ${p?At:kt}
@@ -1116,7 +1156,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                     ${wt}
                 </button>
             </div>
-        `}_renderFullPlayer(){var t,e,i,s,r,n,o,a;const l=(null===(e=null===(t=this._entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.entity_picture_local)||(null===(s=null===(i=this._entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.entity_picture),d=(null===(n=null===(r=this._entity)||void 0===r?void 0:r.attributes)||void 0===n?void 0:n.media_title)||"Sconosciuto",c=(null===(a=null===(o=this._entity)||void 0===o?void 0:o.attributes)||void 0===a?void 0:a.media_artist)||"";return V`
+        `}_renderFullPlayer(){var t,e,i,s,r,o,n,a;const l=(null===(e=null===(t=this._entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.entity_picture_local)||(null===(s=null===(i=this._entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.entity_picture),d=(null===(o=null===(r=this._entity)||void 0===r?void 0:r.attributes)||void 0===o?void 0:o.media_title)||"Sconosciuto",c=(null===(a=null===(n=this._entity)||void 0===n?void 0:n.attributes)||void 0===a?void 0:a.media_artist)||"";return V`
             <div class="full-player"
                 style="${l?`--fp-bg: url('${l}')`:""}">
                 <div class="fp-bg-blur"></div>
@@ -1160,20 +1200,20 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
                 <ha-icon icon="mdi:loading" class="spin"></ha-icon>
             </div>`:this._queueTracks&&this._queueTracks.length?V`
             <div class="fp-queue-list">
-                ${this._queueTracks.map((t,e)=>{const s=t.title||"",r=s.indexOf(" - "),n=r>0?s.substring(0,r):"",o=r>0?s.substring(r+3):s,a=t.thumbnail||"",l=e===i;return V`
+                ${this._queueTracks.map((t,e)=>{const s=t.title||"",r=s.indexOf(" - "),o=r>0?s.substring(0,r):"",n=r>0?s.substring(r+3):s,a=t.thumbnail||"",l=e===i;return V`
                         <div class="fp-queue-item ${l?"current":""}"
                             @click=${()=>{this._hass.callService("ytube_music_player","call_method",{entity_id:this._config.entity_id,command:"goto_track",parameters:e})}}>
                             ${a?V`<img class="fp-qi-thumb" src="${a}">`:V`<div class="fp-qi-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
                             <div class="fp-qi-info">
-                                <div class="fp-qi-title">${o}</div>
-                                ${n?V`<div class="fp-qi-artist">${n}</div>`:B}
+                                <div class="fp-qi-title">${n}</div>
+                                ${o?V`<div class="fp-qi-artist">${o}</div>`:z}
                             </div>
-                            ${l?V`<ha-icon icon="mdi:volume-high" class="fp-qi-playing"></ha-icon>`:B}
+                            ${l?V`<ha-icon icon="mdi:volume-high" class="fp-qi-playing"></ha-icon>`:z}
                         </div>
                     `})}
             </div>
         `:V`
-            <div class="fp-queue-empty">${Ft("noQueue")}</div>`}_selectFilter(t,e){this._activeFilter=t,this._rootItems.length>0?this._navigateToFilter(t):(this._rootLoaded=!1,this._loadRoot())}_handleSearchKey(t){if(13===t.keyCode){const t=this.renderRoot.querySelector("#searchInput");(null==t?void 0:t.value)&&this._browser&&(this._browser.searchExternal(t.value),this._searchActive=!1)}}_getProgress(){var t,e,i,s;const r=null===(e=null===(t=this._entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.media_duration,n=null===(s=null===(i=this._entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.media_position;return r&&null!=n?Math.min(n/r*100,100):0}_toggleMenu(t){t.stopPropagation(),this._menuOpen=!this._menuOpen,this._menuOpen&&document.addEventListener("click",()=>{this._menuOpen=!1},{once:!0})}async _selectSource(t){var e,i;const s=null===(i=null===(e=this._entity)||void 0===e?void 0:e.attributes)||void 0===i?void 0:i.remote_player_id;this._menuOpen=!1,""!==t&&t!==s&&this._hass.callService("media_player","select_source",{entity_id:this._config.entity_id,source:t})}async _togglePlayPause(){this._hass.callService("media_player","media_play_pause",{entity_id:this._config.entity_id})}async _skipNext(){this._hass.callService("media_player","media_next_track",{entity_id:this._config.entity_id})}static get styles(){return[o`
+            <div class="fp-queue-empty">${Ft("noQueue")}</div>`}_selectFilter(t,e){this._activeFilter=t,this._rootItems.length>0?this._navigateToFilter(t):(this._rootLoaded=!1,this._loadRoot())}_handleSearchKey(t){if(13===t.keyCode){const t=this.renderRoot.querySelector("#searchInput");(null==t?void 0:t.value)&&this._browser&&(this._browser.searchExternal(t.value),this._searchActive=!1)}}_getProgress(){var t,e,i,s;const r=null===(e=null===(t=this._entity)||void 0===t?void 0:t.attributes)||void 0===e?void 0:e.media_duration,o=null===(s=null===(i=this._entity)||void 0===i?void 0:i.attributes)||void 0===s?void 0:s.media_position;return r&&null!=o?Math.min(o/r*100,100):0}_toggleMenu(t){t.stopPropagation(),this._menuOpen=!this._menuOpen,this._menuOpen&&document.addEventListener("click",()=>{this._menuOpen=!1},{once:!0})}async _selectSource(t){var e,i;const s=null===(i=null===(e=this._entity)||void 0===e?void 0:e.attributes)||void 0===i?void 0:i.remote_player_id;this._menuOpen=!1,""!==t&&t!==s&&this._hass.callService("media_player","select_source",{entity_id:this._config.entity_id,source:t})}async _togglePlayPause(){this._hass.callService("media_player","media_play_pause",{entity_id:this._config.entity_id})}async _skipNext(){this._hass.callService("media_player","media_next_track",{entity_id:this._config.entity_id})}static get styles(){return[n`
             :host {
                 --yt-bg: #0f0f0f;
                 --yt-surface: #1e1e1e;
@@ -1682,4 +1722,4 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-function(t){return(({finisher:t,descriptor:e})=>(i,s)=>{var r;if(void 0===s){const s=null!==(r=i.originalKey)&&void 0!==r?r:i.key,n=null!=e?{kind:"method",placement:"prototype",key:s,descriptor:e(i.key)}:{...i,key:s};return null!=t&&(n.finisher=function(e){t(e,s)}),n}{const r=i.constructor;void 0!==e&&Object.defineProperty(i,s,e(s)),null==t||t(r,s)}})({descriptor:e=>{const i={get(){var e,i;return null!==(i=null===(e=this.renderRoot)||void 0===e?void 0:e.querySelector(t))&&void 0!==i?i:null},enumerable:!0,configurable:!0};return i}})}("ytmusic-browser")],Dt.prototype,"_browser",void 0),customElements.define("ytmusic-playing-card",Dt),window.customCards=window.customCards||[],window.customCards.push({type:"ytmusic-playing-card",name:"YTMusic Playing",description:"Requires the ytube_media_player integration"});export{Dt as YTMusicPlayingCard,Nt as YTMusicSearchCard};
+function(t){return(({finisher:t,descriptor:e})=>(i,s)=>{var r;if(void 0===s){const s=null!==(r=i.originalKey)&&void 0!==r?r:i.key,o=null!=e?{kind:"method",placement:"prototype",key:s,descriptor:e(i.key)}:{...i,key:s};return null!=t&&(o.finisher=function(e){t(e,s)}),o}{const r=i.constructor;void 0!==e&&Object.defineProperty(i,s,e(s)),null==t||t(r,s)}})({descriptor:e=>{const i={get(){var e,i;return null!==(i=null===(e=this.renderRoot)||void 0===e?void 0:e.querySelector(t))&&void 0!==i?i:null},enumerable:!0,configurable:!0};return i}})}("ytmusic-browser")],Dt.prototype,"_browser",void 0),customElements.define("ytmusic-playing-card",Dt),window.customCards=window.customCards||[],window.customCards.push({type:"ytmusic-playing-card",name:"YTMusic Playing",description:"Requires the ytube_media_player integration"});export{Dt as YTMusicPlayingCard,Nt as YTMusicSearchCard};

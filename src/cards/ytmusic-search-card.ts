@@ -2,6 +2,7 @@ import { LitElement, html, css, CSSResultGroup, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import "../elements/ytmusic-search";
 import { CastAudioIcon } from "../utils/icons";
+import { areDeeplyEqual } from "../utils/utils";
 
 const YTLogoSVG = html`
     <svg viewBox="0 0 24 24" class="yt-icon" xmlns="http://www.w3.org/2000/svg">
@@ -11,40 +12,70 @@ const YTLogoSVG = html`
 
 export class YTMusicSearchCard extends LitElement {
     @property() _config: any = {};
-    @property() _hass: any;
+    _hass: any;
     @state() _entity: any;
-    @state() _runOnce: boolean = false;
     @state() _menuOpen: boolean = false;
 
     static getConfigElement() {}
 
     static getStubConfig() {
-        return {};
+        return { entity_id: "media_player.ytube_music_player" };
     }
 
     setConfig(config: any) {
-        if (!config.entity_id) {
-            throw new Error("entity_id must be specified");
-        }
+        if (!config.entity_id) throw new Error("entity_id must be specified");
         this._config = structuredClone(config);
-        if (!("header" in this._config)) this._config.header = "Music";
-        if (!("showHeader" in this._config)) this._config.showHeader = true;
+        if (!("header" in this._config)) this._config.header = "YouTube Music Search";
     }
 
     set hass(hass) {
-        if (!this._runOnce) {
-            this._hass = hass;
-            this._entity = structuredClone(
-                this._hass["states"][this._config["entity_id"]]
-            );
-            this._runOnce = true;
+        this._hass = hass;
+        const newEntity = this._hass["states"][this._config["entity_id"]];
+        if (!areDeeplyEqual(this._entity, newEntity, [])) {
+            this._entity = structuredClone(newEntity);
         }
+    }
+
+    render() {
+        const vol = this._entity?.attributes?.volume_level;
+        const curVol = vol != null ? Math.round(vol * 100) : 50;
+        const muted = this._entity?.attributes?.is_volume_muted;
+
+        return html`
+            <ha-card>
+                <div class="yt-header">
+                    <div class="yt-logo">
+                        ${YTLogoSVG}
+                        <span class="yt-title">Music</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="icon-btn" @click=${this._toggleMute}>
+                            <ha-icon icon="${muted ? 'mdi:volume-off' : 'mdi:volume-high'}"></ha-icon>
+                        </button>
+                        <input
+                            type="range"
+                            class="vol-slider"
+                            min="0" max="100" step="1"
+                            .value=${String(curVol)}
+                            @change=${this._onVolumeChange}
+                        />
+                        ${this._renderSourceSelector()}
+                    </div>
+                </div>
+                <div class="search-wrap">
+                    <ytmusic-search
+                        ._hass=${this._hass}
+                        ._entity=${this._entity}
+                    ></ytmusic-search>
+                </div>
+            </ha-card>
+        `;
     }
 
     _renderSourceSelector() {
         if (!this._hass) return html``;
 
-        let media_players: any[] = [];
+        let media_players: [string, string][] = [];
         for (const [key, value] of Object.entries(this._hass["states"])) {
             if (key.startsWith("media_player")) {
                 if ((value as any)?.attributes?.remote_player_id) continue;
@@ -77,17 +108,13 @@ export class YTMusicSearchCard extends LitElement {
         e.stopPropagation();
         this._menuOpen = !this._menuOpen;
         if (this._menuOpen) {
-            document.addEventListener("click", () => {
-                this._menuOpen = false;
-                this.requestUpdate();
-            }, { once: true });
+            document.addEventListener("click", () => { this._menuOpen = false; }, { once: true });
         }
     }
 
     async _selectSource(source: string) {
-        const currentSource = this._entity?.attributes?.remote_player_id;
         this._menuOpen = false;
-        this.requestUpdate();
+        const currentSource = this._entity?.attributes?.remote_player_id;
         if (source === "" || source === currentSource) return;
         this._hass.callService("media_player", "select_source", {
             entity_id: this._config.entity_id,
@@ -95,26 +122,19 @@ export class YTMusicSearchCard extends LitElement {
         });
     }
 
-    render() {
-        return html`
-            <ha-card>
-                <div class="yt-header">
-                    <div class="yt-logo">
-                        ${YTLogoSVG}
-                        <span class="yt-title">${this._config.header}</span>
-                    </div>
-                    <div class="header-actions">
-                        ${this._renderSourceSelector()}
-                    </div>
-                </div>
-                <div class="content">
-                    <ytmusic-search
-                        ._hass=${this._hass}
-                        ._entity=${this._entity}>
-                    </ytmusic-search>
-                </div>
-            </ha-card>
-        `;
+    _onVolumeChange(e: Event) {
+        const val = Number((e.target as HTMLInputElement).value);
+        this._hass.callService("media_player", "volume_set", {
+            entity_id: this._config.entity_id,
+            volume_level: val / 100,
+        });
+    }
+
+    async _toggleMute() {
+        this._hass.callService("media_player", "volume_mute", {
+            entity_id: this._config.entity_id,
+            is_volume_muted: !this._entity?.attributes?.is_volume_muted,
+        });
     }
 
     static get styles(): CSSResultGroup {
@@ -133,7 +153,7 @@ export class YTMusicSearchCard extends LitElement {
                 background: var(--yt-bg) !important;
                 display: flex;
                 flex-direction: column;
-                overflow: visible;
+                overflow: hidden;
                 border-radius: 12px;
                 color: var(--yt-text);
             }
@@ -143,24 +163,22 @@ export class YTMusicSearchCard extends LitElement {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                padding: 12px 16px 8px;
+                padding: 10px 16px 8px;
                 flex-shrink: 0;
-                height: 52px;
+                gap: 8px;
             }
 
             .yt-logo {
                 display: flex;
                 align-items: center;
                 gap: 6px;
+                flex-shrink: 0;
             }
 
-            .yt-icon {
-                width: 28px;
-                height: 28px;
-            }
+            .yt-icon { width: 26px; height: 26px; }
 
             .yt-title {
-                font-size: 18px;
+                font-size: 17px;
                 font-weight: 600;
                 color: var(--yt-text);
                 letter-spacing: 0.3px;
@@ -169,12 +187,60 @@ export class YTMusicSearchCard extends LitElement {
             .header-actions {
                 display: flex;
                 align-items: center;
-                gap: 4px;
+                gap: 6px;
             }
 
-            /* ── CONTENT ── */
-            .content {
-                padding: 0 8px 12px 8px;
+            /* ── VOLUME ── */
+            .vol-slider {
+                width: 80px;
+                -webkit-appearance: none;
+                appearance: none;
+                height: 3px;
+                border-radius: 2px;
+                background: rgba(255,255,255,0.25);
+                outline: none;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+
+            .vol-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: var(--yt-text);
+                cursor: pointer;
+            }
+
+            .vol-slider::-moz-range-thumb {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: var(--yt-text);
+                cursor: pointer;
+                border: none;
+            }
+
+            /* ── SEARCH WRAPPER ── */
+            .search-wrap {
+                flex: 1;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                padding: 0 8px 8px;
+            }
+
+            ytmusic-search {
+                flex: 1;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                --primary-text-color: #ffffff;
+                --rgb-primary-text-color: 255, 255, 255;
+                --primary-color: #ff0000;
+                --rgb-primary-color: 255, 0, 0;
+                --card-background-color: #1e1e1e;
+                color: #ffffff;
             }
 
             /* ── ICON BUTTONS ── */
@@ -188,50 +254,46 @@ export class YTMusicSearchCard extends LitElement {
                 align-items: center;
                 justify-content: center;
                 color: var(--yt-text);
-                width: 36px;
-                height: 36px;
+                --mdc-icon-size: 20px;
+                flex-shrink: 0;
             }
 
             .icon-btn:hover { background: rgba(255,255,255,0.08); }
 
             .icon-btn svg {
-                width: 22px;
-                height: 22px;
+                width: 20px;
+                height: 20px;
                 fill: currentColor;
             }
 
-            /* ── SOURCE MENU ── */
+            .cast-btn svg { width: 18px; height: 18px; }
+
+            /* ── SOURCE DROPDOWN ── */
             .source-wrap { position: relative; }
 
             .source-menu {
                 position: absolute;
+                top: 100%;
                 right: 0;
-                top: 44px;
-                background: var(--yt-surface2);
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.5);
                 z-index: 999;
-                min-width: 220px;
-                max-height: 40vh;
-                overflow-y: scroll;
+                background: #2a2a2a;
+                border-radius: 8px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+                min-width: 200px;
+                max-height: 280px;
+                overflow-y: auto;
+                border: 1px solid rgba(255,255,255,0.1);
             }
 
             .menu-item {
-                padding: 12px 16px;
+                padding: 11px 16px;
                 cursor: pointer;
                 font-size: 14px;
                 color: var(--yt-text);
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
             }
 
             .menu-item:hover { background: rgba(255,255,255,0.08); }
-
-            .menu-item.selected {
-                color: var(--yt-red);
-                font-weight: 600;
-            }
+            .menu-item.selected { color: var(--yt-red); font-weight: 600; }
         `];
     }
 }
