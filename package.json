@@ -1,6 +1,6 @@
 {
     "name": "ytmusic-card",
-    "version": "1.7.6",
+    "version": "1.7.8",
     "description": "",
     "author": "pathofleastresistor",
     "license": "MIT",
@@ -28,6 +28,9 @@
         "@material/mwc-tab-bar": "^0.27.0",
         "@material/mwc-textfield": "^0.27.0",
         "@material/web": "^1.1.1",
-        "lit": "^2.7.5"
+        "lit": "2.8.0"
+    },
+    "overrides": {
+        "lit-element": "3.3.2"
     }
 }
