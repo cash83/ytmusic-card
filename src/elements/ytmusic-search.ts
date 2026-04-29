@@ -33,7 +33,6 @@ export class YTMusicSearch extends LitElement {
                 .hass=${this._hass}
                 .entity=${this._entity}
                 .initialAction=${this.initialAction}
-                .hideSearch=${true}
             ></ytmusic-browser>
         `;
     }
@@ -120,33 +119,43 @@ export class YTMusicSearch extends LitElement {
             display: grid;
             grid-template-columns: 1fr min-content;
             align-items: center;
-            gap: 4px;
+            gap: 8px;
             margin-bottom: 8px;
         }
 
         input[type="search"] {
-            height: 42px;
-            background: rgba(var(--rgb-primary-text-color, 0, 0, 0), 0.06);
-            border: none;
-            border-radius: 4px;
-            color: var(--primary-text-color);
+            height: 40px;
+            background: #1e1e1e;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 24px;
+            color: #ffffff;
             font-size: 14px;
-            padding: 0 12px;
+            padding: 0 16px;
             outline: none;
             width: 100%;
             box-sizing: border-box;
         }
 
+        input[type="search"]::placeholder {
+            color: rgba(255,255,255,0.38);
+        }
+
         select {
-            height: 42px;
-            background: var(--card-background-color);
-            border: none;
-            border-radius: 4px;
-            color: var(--primary-text-color);
-            font-size: 14px;
-            padding: 0 8px;
+            height: 40px;
+            background: #1e1e1e;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 0 10px;
             cursor: pointer;
             outline: none;
+        }
+
+        select option {
+            background: #282828;
+            color: #ffffff;
         }
     `;
 }
