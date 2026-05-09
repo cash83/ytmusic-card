@@ -75,6 +75,7 @@ export class YTMusicPlayingCard extends LitElement {
     private _rootItems: any[] = [];
     private _homeItems: any[] = [];
     private _rootLoaded = false;
+    private _volumeInitialized = false;
 
     static getConfigElement() {}
 
@@ -103,6 +104,13 @@ export class YTMusicPlayingCard extends LitElement {
         const newEntity = this._hass["states"][this._config["entity_id"]];
         if (!areDeeplyEqual(this._entity, newEntity, [])) {
             this._entity = structuredClone(newEntity);
+            if (!this._volumeInitialized && this._entity?.state !== "off") {
+                this._volumeInitialized = true;
+                this._hass.callService("media_player", "volume_set", {
+                    entity_id: this._config.entity_id,
+                    volume_level: 0.3,
+                });
+            }
         }
     }
 
@@ -391,7 +399,7 @@ export class YTMusicPlayingCard extends LitElement {
                                 this._hass.callService("ytube_music_player", "call_method", {
                                     entity_id: this._config.entity_id,
                                     command: "goto_track",
-                                    parameters: i + 1,
+                                    parameters: i,
                                 });
                             }}>
                             ${thumb
