@@ -1203,7 +1203,7 @@ function*(t,e){const i="function"==typeof e;if(void 0!==t){let s=-1;for(const r 
             <div class="fp-queue-list">
                 ${this._queueTracks.map((t,e)=>{const s=t.title||"",r=s.indexOf(" - "),n=r>0?s.substring(0,r):"",o=r>0?s.substring(r+3):s,a=t.thumbnail||"",l=e===i;return V`
                         <div class="fp-queue-item ${l?"current":""}"
-                            @click=${()=>{this._hass.callService("ytube_music_player","call_method",{entity_id:this._config.entity_id,command:"goto_track",parameters:e})}}>
+                            @click=${()=>{this._hass.callService("ytube_music_player","call_method",{entity_id:this._config.entity_id,command:"goto_track",parameters:e+1})}}>
                             ${a?V`<img class="fp-qi-thumb" src="${a}">`:V`<div class="fp-qi-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
                             <div class="fp-qi-info">
                                 <div class="fp-qi-title">${o}</div>
