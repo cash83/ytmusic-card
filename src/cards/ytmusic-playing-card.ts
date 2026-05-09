@@ -75,8 +75,7 @@ export class YTMusicPlayingCard extends LitElement {
     private _rootItems: any[] = [];
     private _homeItems: any[] = [];
     private _rootLoaded = false;
-    private _volumeInitialized = false;
-
+    private _volumeInitialized = false;   
     static getConfigElement() {}
 
     static getStubConfig() {
@@ -399,7 +398,7 @@ export class YTMusicPlayingCard extends LitElement {
                                 this._hass.callService("ytube_music_player", "call_method", {
                                     entity_id: this._config.entity_id,
                                     command: "goto_track",
-                                    parameters: i,
+                                    parameters: i + 1,
                                 });
                             }}>
                             ${thumb
