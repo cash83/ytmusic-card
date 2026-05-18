@@ -64,7 +64,7 @@ export class YTMusicPlayingCard extends LitElement {
     @state() _config: any = {};
     _hass: any;
     @state() _entity: any;
-    @state() _menuOpen: boolean = false;
+    @state() _menuOpen: string | null = null;
     @state() _playerExpanded: boolean = false;
     @state() _showQueue: boolean = false;
     @state() _queueTracks: any[] = [];
@@ -211,7 +211,7 @@ export class YTMusicPlayingCard extends LitElement {
                     <button class="icon-btn" @click=${() => { this._searchActive = true; }}>
                         <ha-icon icon="mdi:magnify"></ha-icon>
                     </button>
-                    ${this._renderSourceSelector()}
+                    ${this._renderSourceSelector("header")}
                 </div>
             </div>
         `;
@@ -235,7 +235,7 @@ export class YTMusicPlayingCard extends LitElement {
         `;
     }
 
-    _renderSourceSelector() {
+    _renderSourceSelector(menuId = "header") {
         if (!this._hass) return html``;
 
         let media_players = [];
@@ -250,11 +250,15 @@ export class YTMusicPlayingCard extends LitElement {
 
         return html`
             <div class="source-wrap">
-                <button class="icon-btn cast-btn" @click=${this._toggleMenu}>
+                <button class="icon-btn cast-btn" @click=${(e: Event) => this._toggleMenu(e, menuId)}>
                     ${CastAudioIcon}
                 </button>
-                ${this._menuOpen ? html`
-                    <div class="source-menu" @click=${(e: Event) => e.stopPropagation()}>
+                ${this._menuOpen === menuId ? html`
+                    <div
+                        class="source-menu"
+                        @click=${(e: Event) => e.stopPropagation()}
+                        @wheel=${this._onSourceMenuWheel}
+                    >
                         ${media_players.map(item => html`
                             <div
                                 class="menu-item ${item[0] === this._entity?.attributes?.remote_player_id ? "selected" : ""}"
@@ -313,7 +317,7 @@ export class YTMusicPlayingCard extends LitElement {
                             <ha-icon icon="mdi:chevron-down"></ha-icon>
                         </button>
                         <span class="fp-from">${_t("nowPlaying")}</span>
-                        ${this._renderSourceSelector()}
+                        ${this._renderSourceSelector("full-player")}
                     </div>
                     <div class="fp-tabs">
                         <button class="fp-tab ${!this._showQueue ? "active" : ""}"
@@ -436,17 +440,23 @@ export class YTMusicPlayingCard extends LitElement {
         return Math.min((position / duration) * 100, 100);
     }
 
-    _toggleMenu(e: Event) {
+    _toggleMenu(e: Event, menuId = "header") {
         e.stopPropagation();
-        this._menuOpen = !this._menuOpen;
+        this._menuOpen = this._menuOpen === menuId ? null : menuId;
         if (this._menuOpen) {
-            document.addEventListener("click", () => { this._menuOpen = false; }, { once: true });
+            document.addEventListener("click", () => { this._menuOpen = null; }, { once: true });
         }
+    }
+
+    _onSourceMenuWheel(e: WheelEvent) {
+        e.stopPropagation();
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).scrollTop += e.deltaY;
     }
 
     async _selectSource(source: string) {
         const currentSource = this._entity?.attributes?.remote_player_id;
-        this._menuOpen = false;
+        this._menuOpen = null;
         if (source === "" || source === currentSource) return;
         this._hass.callService("media_player", "select_source", {
             entity_id: this._config.entity_id,
@@ -958,6 +968,7 @@ export class YTMusicPlayingCard extends LitElement {
                 min-width: 200px;
                 max-height: 280px;
                 overflow-y: auto;
+                overscroll-behavior: contain;
                 border: 1px solid rgba(255,255,255,0.1);
             }
 
