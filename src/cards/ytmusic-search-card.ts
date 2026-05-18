@@ -98,7 +98,11 @@ export class YTMusicSearchCard extends LitElement {
                     ${CastAudioIcon}
                 </button>
                 ${this._menuOpen ? html`
-                    <div class="source-menu" @click=${(e: Event) => e.stopPropagation()}>
+                    <div
+                        class="source-menu"
+                        @click=${(e: Event) => e.stopPropagation()}
+                        @wheel=${this._onSourceMenuWheel}
+                    >
                         ${media_players.map(item => html`
                             <div
                                 class="menu-item ${item[0] === this._entity?.attributes?.remote_player_id ? "selected" : ""}"
@@ -117,6 +121,12 @@ export class YTMusicSearchCard extends LitElement {
         if (this._menuOpen) {
             document.addEventListener("click", () => { this._menuOpen = false; }, { once: true });
         }
+    }
+
+    _onSourceMenuWheel(e: WheelEvent) {
+        e.stopPropagation();
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).scrollTop += e.deltaY;
     }
 
     async _selectSource(source: string) {
@@ -289,6 +299,7 @@ export class YTMusicSearchCard extends LitElement {
                 min-width: 200px;
                 max-height: 280px;
                 overflow-y: auto;
+                overscroll-behavior: contain;
                 border: 1px solid rgba(255,255,255,0.1);
             }
 
