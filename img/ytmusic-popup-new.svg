@@ -1,0 +1,64 @@
+<svg viewBox="0 0 380 620" xmlns="http://www.w3.org/2000/svg" font-family="'Roboto','Segoe UI',system-ui,sans-serif">
+  <rect width="380" height="620" rx="16" fill="#0f0f0f"/>
+
+  <!-- dimmed player behind -->
+  <g opacity="0.4">
+    <circle cx="26" cy="28" r="11" fill="#ff0000"/><path d="M22 23 v10 l9 -5 z" fill="#fff"/>
+    <text x="44" y="33" fill="#fff" font-size="15" font-weight="700">Music</text>
+    <text x="200" y="30" fill="#8a8a8a" font-size="10" font-weight="700" letter-spacing="1" text-anchor="middle">IN RIPRODUZIONE</text>
+    <circle cx="190" cy="190" r="70" fill="#3a2f22"/>
+  </g>
+
+  <!-- popup bottom sheet (semi-transparent) -->
+  <rect x="0" y="150" width="380" height="470" rx="18" fill="#161616" fill-opacity="0.9"/>
+  <rect x="0" y="150" width="380" height="470" rx="18" fill="none" stroke="rgba(255,255,255,0.08)"/>
+  <text x="20" y="184" fill="#fff" font-size="16" font-weight="700">Per te</text>
+  <text x="358" y="186" fill="#8a8a8a" font-size="18" text-anchor="end">✕</text>
+
+  <!-- list -->
+  <g font-family="'Roboto',system-ui,sans-serif">
+    <!-- row template -->
+    <g transform="translate(0,204)">
+      <rect x="20" y="0" width="44" height="44" rx="6" fill="#333"/>
+      <text x="76" y="20" fill="#fff" font-size="13" font-weight="600">Scelte rapide</text>
+      <text x="76" y="37" fill="#9a9a9a" font-size="11">Playlist consigliata</text>
+      <text x="352" y="28" fill="#ff0000" font-size="15" text-anchor="end">▶</text>
+    </g>
+    <g transform="translate(0,258)">
+      <rect x="20" y="0" width="44" height="44" rx="6" fill="#3a3340"/>
+      <text x="76" y="20" fill="#fff" font-size="13" font-weight="600">La tua scoperta quotidiana</text>
+      <text x="76" y="37" fill="#9a9a9a" font-size="11">Mix</text>
+      <text x="352" y="28" fill="#ff0000" font-size="15" text-anchor="end">▶</text>
+    </g>
+    <g transform="translate(0,312)">
+      <rect x="20" y="0" width="44" height="44" rx="6" fill="#2f3a33"/>
+      <text x="76" y="20" fill="#fff" font-size="13" font-weight="600">anni 90</text>
+      <text x="76" y="37" fill="#9a9a9a" font-size="11">Playlist</text>
+      <text x="352" y="28" fill="#ff0000" font-size="15" text-anchor="end">▶</text>
+    </g>
+    <g transform="translate(0,366)">
+      <rect x="20" y="0" width="44" height="44" rx="6" fill="#3a2f2f"/>
+      <text x="76" y="20" fill="#fff" font-size="13" font-weight="600">Dalla community</text>
+      <text x="76" y="37" fill="#9a9a9a" font-size="11">Mix</text>
+      <text x="352" y="28" fill="#ff0000" font-size="15" text-anchor="end">▶</text>
+    </g>
+    <g transform="translate(0,420)">
+      <rect x="20" y="0" width="44" height="44" rx="6" fill="#33323a"/>
+      <text x="76" y="20" fill="#fff" font-size="13" font-weight="600">Ascolti di lunga durata</text>
+      <text x="76" y="37" fill="#9a9a9a" font-size="11">Playlist</text>
+      <text x="352" y="28" fill="#ff0000" font-size="15" text-anchor="end">▶</text>
+    </g>
+    <g transform="translate(0,474)">
+      <rect x="20" y="0" width="44" height="44" rx="6" fill="#2f333a"/>
+      <text x="76" y="20" fill="#fff" font-size="13" font-weight="600">Cover e remix</text>
+      <text x="76" y="37" fill="#9a9a9a" font-size="11">Mix</text>
+      <text x="352" y="28" fill="#ff0000" font-size="15" text-anchor="end">▶</text>
+    </g>
+    <g transform="translate(0,528)">
+      <rect x="20" y="0" width="44" height="44" rx="6" fill="#3a3226"/>
+      <text x="76" y="20" fill="#fff" font-size="13" font-weight="600">Album per te</text>
+      <text x="76" y="37" fill="#9a9a9a" font-size="11">Raccolta</text>
+      <text x="352" y="28" fill="#ff0000" font-size="15" text-anchor="end">▶</text>
+    </g>
+  </g>
+</svg>

@@ -1,10 +1,14 @@
 # YTMusic Card
 
-A collection of cards designed to enhance the features of the [YTube_Media_Player integration](https://github.com/KoljaWindeler/ytube_music_player) and the [Mini Media Player](https://github.com/kalkih/mini-media-player)
+A collection of cards designed to enhance the features of the [YTube_Media_Player integration](https://github.com/KoljaWindeler/ytube_music_player).
 
-![YTMusic Card](https://raw.githubusercontent.com/cash83/ytmusic-card/main/img/ytmusic-browse.png)
+The **YTMusic Playing Card** is a full "now playing" player with a YouTube-Music look: an undulating cover that breathes while playing, a wavy animated progress bar, big red transport controls, shuffle/repeat, a volume pill, and quick-access **category chips** (For You, Quick picks, Radio…) that open a translucent popup with that category's music.
 
-![YTMusic Queue](https://raw.githubusercontent.com/cash83/ytmusic-card/main/img/ytmusic-queue.png)
+<p align="center">
+  <img src="img/ytmusic-player-new.svg" width="300" alt="Now Playing">
+  &nbsp;&nbsp;
+  <img src="img/ytmusic-popup-new.svg" width="300" alt="Category popup">
+</p>
 
 
 
@@ -27,7 +31,7 @@ A collection of cards designed to enhance the features of the [YTube_Media_Playe
 
 ## YTMusic-Playing-Card
 
-Get the full experience of the ytube_music_player component! You can see what's currently playing, browse through suggestions, search, and access your library!
+The full "now playing" experience for ytube_music_player: current track with an undulating cover, wavy progress bar, transport controls, shuffle/repeat and volume — plus category chips that open a popup to jump into your suggestions and library.
 
 ### Settings
 
@@ -43,7 +47,7 @@ entity_id: media_player.youtube_living_room_display
 header: YouTube Music
 ```
 
-![YTMusic Playing Card](https://raw.githubusercontent.com/cash83/ytmusic-card/main/img/ytmusic-playlist.png)
+![YTMusic Playing Card](img/ytmusic-popup-new.svg)
 
 ## YTMusic-Search-Card
 

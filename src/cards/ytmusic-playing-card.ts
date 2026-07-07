@@ -65,11 +65,15 @@ export class YTMusicPlayingCard extends LitElement {
     _hass: any;
     @state() _entity: any;
     @state() _menuOpen: string | null = null;
-    @state() _playerExpanded: boolean = false;
+    @state() _playerExpanded: boolean = true;
     @state() _showQueue: boolean = false;
     @state() _queueTracks: any[] = [];
     @state() _queueLoading: boolean = false;
     @state() _activeFilter: number = 0;
+    @state() _popupOpen: boolean = false;
+    @state() _popupLoading: boolean = false;
+    @state() _popupItems: any[] = [];
+    @state() _popupTitle: string = "";
     @state() _searchActive: boolean = false;
     @query("ytmusic-browser") _browser: any;
     private _rootItems: any[] = [];
@@ -165,6 +169,72 @@ export class YTMusicPlayingCard extends LitElement {
         if (target) this._browser.loadElement(target);
     }
 
+    private async _openChipPopup(index: number, filter: any) {
+        this._activeFilter = index;
+        this._popupTitle = filter.label;
+        this._popupItems = [];
+        this._popupOpen = true;
+        this._popupLoading = true;
+        try {
+            const pool = filter.source === "home" ? this._homeItems : this._rootItems;
+            const lc = (s: string) => s?.toLowerCase() ?? "";
+            let target = pool.find((item: any) => lc(item.title).includes(filter.titleKey));
+            if (!target && index === 0) target = this._rootItems[0];
+            if (target) {
+                const resp = await this._hass.callWS({
+                    type: "media_player/browse_media",
+                    entity_id: this._config.entity_id,
+                    media_content_type: target.media_content_type,
+                    media_content_id: target.media_content_id,
+                });
+                this._popupItems = (resp?.children || []).filter(
+                    (el: any) => !el.media_content_id?.startsWith("MPSP")
+                );
+            }
+        } catch (e) {
+            console.error("YTube: chip popup load failed", e);
+        }
+        this._popupLoading = false;
+    }
+
+    private _playPopupItem(item: any) {
+        this._hass.callService("media_player", "play_media", {
+            entity_id: this._config.entity_id,
+            media_content_id: item.media_content_id,
+            media_content_type: item.media_content_type,
+        });
+        this._popupOpen = false;
+    }
+
+    _renderChipPopup() {
+        return html`
+            <div class="chip-popup-backdrop" @click=${() => { this._popupOpen = false; }}>
+                <div class="chip-popup" @click=${(e: Event) => e.stopPropagation()}>
+                    <div class="cp-head">
+                        <span class="cp-title">${this._popupTitle}</span>
+                        <button class="icon-btn" @click=${() => { this._popupOpen = false; }}>
+                            <ha-icon icon="mdi:close"></ha-icon>
+                        </button>
+                    </div>
+                    ${this._popupLoading
+                        ? html`<div class="cp-msg"><ha-icon icon="mdi:loading" class="spin"></ha-icon></div>`
+                        : this._popupItems.length
+                            ? html`<div class="cp-list">
+                                ${this._popupItems.map((it: any) => html`
+                                    <div class="cp-item" @click=${() => this._playPopupItem(it)}>
+                                        ${it.thumbnail
+                                            ? html`<img class="cp-thumb" src="${it.thumbnail}">`
+                                            : html`<div class="cp-thumb cp-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
+                                        <div class="cp-info"><div class="cp-t">${it.title}</div></div>
+                                        <ha-icon icon="mdi:play" class="cp-play"></ha-icon>
+                                    </div>`)}
+                              </div>`
+                            : html`<div class="cp-msg">Nessun elemento</div>`}
+                </div>
+            </div>
+        `;
+    }
+
     private _onPillsWheel(e: WheelEvent) {
         if (e.deltaY === 0) return;
         e.preventDefault();
@@ -174,28 +244,8 @@ export class YTMusicPlayingCard extends LitElement {
     render() {
         return html`
             <ha-card>
-                ${this._searchActive ? this._renderSearchHeader() : this._renderHeader()}
-                <div class="pills-container" @wheel=${this._onPillsWheel}>
-                    <div class="pills-row">
-                        ${YT_FILTERS.map((f, i) => html`
-                            <button
-                                class="pill ${this._activeFilter === i ? "active" : ""}"
-                                @click=${() => this._selectFilter(i, f)}
-                            >${f.label}</button>
-                        `)}
-                    </div>
-                </div>
-                <div class="content-area">
-                    <ytmusic-browser
-                        .hass=${this._hass}
-                        .entity=${this._entity}
-                        .initialAction=${this._config.initialAction}
-                        .coverNavigation=${this._config.coverNavigation}
-                        .hideSearch=${true}
-                    ></ytmusic-browser>
-                </div>
-                ${this._entity?.state !== "off" ? this._renderMiniPlayer() : nothing}
-                ${this._playerExpanded ? this._renderFullPlayer() : nothing}
+                ${this._renderFullPlayer()}
+                ${this._popupOpen ? this._renderChipPopup() : nothing}
             </ha-card>
         `;
     }
@@ -306,6 +356,7 @@ export class YTMusicPlayingCard extends LitElement {
             || this._entity?.attributes?.entity_picture;
         const title = this._entity?.attributes?.media_title || "Sconosciuto";
         const artist = this._entity?.attributes?.media_artist || "";
+        const playing = this._entity?.state === "playing";
 
         return html`
             <div class="full-player"
@@ -313,9 +364,7 @@ export class YTMusicPlayingCard extends LitElement {
                 <div class="fp-bg-blur"></div>
                 <div class="fp-content">
                     <div class="fp-header">
-                        <button class="icon-btn" @click=${() => { this._playerExpanded = false; this._showQueue = false; }}>
-                            <ha-icon icon="mdi:chevron-down"></ha-icon>
-                        </button>
+                        <span class="fp-logo">${YTLogoSVG}<b>Music</b></span>
                         <span class="fp-from">${_t("nowPlaying")}</span>
                         ${this._renderSourceSelector("full-player")}
                     </div>
@@ -329,11 +378,17 @@ export class YTMusicPlayingCard extends LitElement {
                             ${_t("queue")}
                         </button>
                     </div>
+                    <div class="fp-chips" @wheel=${this._onPillsWheel}>
+                        ${YT_FILTERS.map((f, i) => html`
+                            <button class="fp-chip ${this._activeFilter === i ? "active" : ""}"
+                                @click=${() => this._openChipPopup(i, f)}
+                            >${f.label}</button>`)}
+                    </div>
                     ${this._showQueue ? this._renderQueue() : html`
                         <div class="fp-art-wrap">
                             ${art
-                                ? html`<img class="fp-art" src="${art}">`
-                                : html`<div class="fp-art-ph"><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
+                                ? html`<img class="fp-art ${playing ? "playing" : ""}" src="${art}">`
+                                : html`<div class="fp-art-ph ${playing ? "playing" : ""}"><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
                         </div>
                         <div class="fp-info">
                             <div>
@@ -786,6 +841,24 @@ export class YTMusicPlayingCard extends LitElement {
                 color: var(--yt-text2);
             }
 
+            /* undulating "breathing" cover while playing */
+            .fp-art.playing,
+            .fp-art-ph.playing {
+                animation: fp-ondula 4.5s ease-in-out infinite,
+                           fp-glow 4.5s ease-in-out infinite;
+            }
+            @keyframes fp-ondula {
+                0%   { border-radius: 8px; transform: translateY(0) rotate(0deg) scale(1); }
+                25%  { border-radius: 44% 56% 52% 48% / 50% 46% 54% 50%; transform: translateY(-4px) rotate(-1.2deg) scale(1.015); }
+                50%  { border-radius: 56% 44% 48% 52% / 54% 50% 50% 46%; transform: translateY(3px) rotate(1deg) scale(0.99); }
+                75%  { border-radius: 48% 52% 56% 44% / 46% 54% 48% 52%; transform: translateY(-2px) rotate(0.8deg) scale(1.01); }
+                100% { border-radius: 8px; transform: translateY(0) rotate(0deg) scale(1); }
+            }
+            @keyframes fp-glow {
+                0%, 100% { box-shadow: 0 8px 40px rgba(0,0,0,0.6); }
+                50% { box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 10px 50px rgba(255,0,0,0.35); }
+            }
+
             .fp-info {
                 display: flex;
                 align-items: center;
@@ -817,6 +890,115 @@ export class YTMusicPlayingCard extends LitElement {
                 margin: 4px -20px 0;
                 padding: 0 20px;
             }
+
+            /* quick-access category chips inside the player */
+            .fp-chips {
+                display: flex;
+                gap: 8px;
+                overflow-x: auto;
+                flex-shrink: 0;
+                margin: 0 -20px;
+                padding: 10px 20px 2px;
+                scrollbar-width: none;
+            }
+            .fp-chips::-webkit-scrollbar { display: none; }
+            .fp-chip {
+                flex: 0 0 auto;
+                padding: 6px 14px;
+                border-radius: 16px;
+                background: #1f1f1f;
+                border: 1px solid #333;
+                color: var(--yt-text, #ddd);
+                font-size: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+                cursor: pointer;
+            }
+            .fp-chip.active {
+                background: #fff;
+                color: #0f0f0f;
+                border-color: #fff;
+            }
+
+            .fp-logo {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 14px;
+                color: var(--yt-text);
+            }
+            .fp-logo svg { width: 20px; height: 20px; }
+
+            /* chip category popup — semi-transparent bottom sheet, player visible behind */
+            .chip-popup-backdrop {
+                position: absolute;
+                inset: 0;
+                z-index: 300;
+                background: rgba(0, 0, 0, 0.35);
+                display: flex;
+                align-items: flex-end;
+                animation: cp-fade 0.15s ease;
+            }
+            @keyframes cp-fade { from { opacity: 0; } to { opacity: 1; } }
+            .chip-popup {
+                width: 100%;
+                max-height: 80%;
+                background: rgba(22, 22, 22, 0.78);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                border-radius: 18px 18px 0 0;
+                border-top: 1px solid rgba(255,255,255,0.08);
+                padding: 14px 14px 18px;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 -12px 40px rgba(0,0,0,0.55);
+                animation: cp-slide 0.2s ease;
+            }
+            @keyframes cp-slide { from { transform: translateY(30px); } to { transform: translateY(0); } }
+            .cp-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 8px;
+                flex-shrink: 0;
+            }
+            .cp-title { font-size: 16px; font-weight: 700; color: var(--yt-text); }
+            .cp-list { overflow-y: auto; }
+            .cp-list::-webkit-scrollbar { width: 0; }
+            .cp-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 8px 4px;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+            .cp-item:hover { background: rgba(255,255,255,0.06); }
+            .cp-thumb {
+                width: 46px;
+                height: 46px;
+                border-radius: 6px;
+                object-fit: cover;
+                flex-shrink: 0;
+            }
+            .cp-thumb-ph {
+                background: var(--yt-surface);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--yt-text2);
+            }
+            .cp-info { flex: 1; min-width: 0; }
+            .cp-t {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--yt-text);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .cp-play { color: var(--yt-red, #ff0000); flex-shrink: 0; }
+            .cp-msg { padding: 34px; text-align: center; color: var(--yt-text2); }
 
             .fp-tab {
                 background: none;
