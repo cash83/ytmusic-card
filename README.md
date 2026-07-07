@@ -15,9 +15,13 @@ The **YTMusic Playing Card** is a full "now playing" player with a YouTube-Music
 The card **auto-detects** the media player type from the entity and adapts:
 
 - **YouTube Music** (`ytube_music_player`): now-playing player, curated category chips (For You / Quick picks / From the community / Radio / Playlists / Recent), search with type filters, and the play **queue**.
-- **Music Assistant** (`app_id: music_assistant`): now-playing player, your MA **library** categories (Tracks / Playlists / Radio, localized), and native MA **search** (`music_assistant.search`) with type filters. *(The play queue and the Discover/recommendation feeds live inside the Music Assistant app and are not exposed through Home Assistant, so they are hidden when the card is used with a Music Assistant player.)*
+- **Music Assistant** (`app_id: music_assistant`): now-playing player, the **full play queue** (reorder / play-next / remove), native MA **search** (`music_assistant.search`), an **Add/Play menu** (play now / next / add to queue / play radio) on every result, an advanced **browser** (Recommendations & Discover, Recent, Library by type — shown as a cover grid), and a **multi-room players** panel (group/ungroup speakers and per-speaker volume).
 
-Just point `entity_id` at either a `ytube_music_player` entity or a Music Assistant `media_player` entity — no extra configuration needed.
+Just point `entity_id` at either a `ytube_music_player` entity or a Music Assistant `media_player` entity.
+
+### Music Assistant — required integration
+
+The advanced Music Assistant features (full queue, queue actions, Discover/recommendations) rely on the companion integration **[Music Assistant Queue Actions (`mass_queue`)](https://github.com/droans/mass_queue)**. Install it via HACS and create a config entry for your MA instance. Without it, the card still works but the Music Assistant queue falls back to showing only the current + next track.
 
 
 
@@ -42,11 +46,26 @@ Just point `entity_id` at either a `ytube_music_player` entity or a Music Assist
 
 The full "now playing" experience for ytube_music_player: current track with an undulating cover, wavy progress bar, transport controls, shuffle/repeat and volume — plus category chips that open a popup to jump into your suggestions and library.
 
+A **visual editor** is included, so all options below can be set with switches/fields — no YAML required.
+
 ### Settings
 
--   `entity_id` - a `ytube_music_player` **or** a Music Assistant `media_player` entity (auto-detected)
--   `header` - title of the card
--   `coverNavigation` - `true/false` to have the "For You" section to use covers or a list to navigate. Defaults to false.
+| Option | Default | Description |
+| --- | --- | --- |
+| `entity_id` | – | a `ytube_music_player` **or** a Music Assistant `media_player` entity (auto-detected). Required. |
+| `header` | `YouTube Music` | title of the card |
+| `speakers` | *(all)* | list of `media_player` entities to show in the Players panel / source selector. Empty = all available Music Assistant players. |
+| `show_search` | `true` | show the search button |
+| `show_queue` | `true` | show the "Queue" tab |
+| `queue_actions` | `true` | show move/remove buttons on queue items (Music Assistant) |
+| `enqueue_menu` | `true` | show the Add/Play (⋮) menu on search & browse items (Music Assistant) |
+| `media_browser` | `true` | show the advanced browse chips (Recommendations / Recent / Library) |
+| `players` | `true` | show the multi-room Players panel (Music Assistant) |
+| `show_chips` | `true` | show the category chips row |
+| `cover_animation` | `true` | undulating "breathing" cover while playing |
+| `cover_glow` | `true` | animated colored halo behind the cover |
+| `anim_speed` | `6` | cover animation duration in seconds (higher = slower) |
+| `glow_size` | `100` | halo size, in percent |
 
 ### Example
 

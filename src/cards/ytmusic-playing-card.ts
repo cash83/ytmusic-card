@@ -9,6 +9,7 @@ import {
 import { property, state, query } from "lit/decorators.js";
 import "../elements/ytmusic-media-control";
 import "../elements/ytmusic-browser";
+import "./ytmusic-playing-card-editor";
 import { areDeeplyEqual, YTMusicItem } from "../utils/utils";
 import { CastAudioIcon, PlayIcon, PauseIcon, SkipNextIcon } from "../utils/icons";
 
@@ -105,19 +106,24 @@ export class YTMusicPlayingCard extends LitElement {
     @state() _popupLoading: boolean = false;
     @state() _popupItems: any[] = [];
     @state() _popupTitle: string = "";
-    @state() _categories: { label: string; item: any }[] = [];
+    @state() _popupStack: { title: string; items: any[] }[] = [];
+    @state() _categories: { label: string; item?: any; special?: string }[] = [];
     @state() _searchOpen: boolean = false;
     @state() _searchQuery: string = "";
     @state() _searchType: string = "";
     @state() _searchResults: any[] = [];
     @state() _searchLoading: boolean = false;
     @state() _searchActive: boolean = false;
+    @state() _enqueueItem: any = null;
+    @state() _playersOpen: boolean = false;
     @query("ytmusic-browser") _browser: any;
     private _rootItems: any[] = [];
     private _homeItems: any[] = [];
     private _rootLoaded = false;
 
-    static getConfigElement() {}
+    static getConfigElement() {
+        return document.createElement("ytmusic-playing-card-editor");
+    }
 
     static getStubConfig() {
         return {
@@ -159,6 +165,13 @@ export class YTMusicPlayingCard extends LitElement {
         return this._entity?.attributes?.app_id === "music_assistant";
     }
 
+    // Feature toggle read from YAML config. Everything is enabled by default; a user
+    // disables a part by setting it to false, e.g. `queue_actions: false`.
+    // Known flags: show_search, show_queue, queue_actions, show_chips.
+    private _feat(name: string): boolean {
+        return this._config?.[name] !== false;
+    }
+
     private async _browseInto(item: any): Promise<any[]> {
         const resp = await this._hass.callWS({
             type: "media_player/browse_media",
@@ -186,9 +199,18 @@ export class YTMusicPlayingCard extends LitElement {
                 // dropping HA media sources (Frigate, Camera, TTS, DLNA, …) and non-music
                 // MA sections (Podcasts, Audiobooks, …).
                 const MA_MUSIC = ["tracks", "playlists", "radio stations", "radios"];
-                this._categories = this._rootItems
+                const libraryCats = this._rootItems
                     .filter((c: any) => c.can_expand && MA_MUSIC.includes((c.title ?? "").toLowerCase()))
                     .map((c: any) => ({ label: _maCatLabel(c.title), item: c }));
+                // Advanced browse: Recommendations (Discover) / Recent / Favorites.
+                const browseChips: { label: string; special: string }[] = [];
+                if (this._feat("media_browser")) {
+                    const it = getUILang() === "it";
+                    browseChips.push({ label: it ? "Consigliati" : "Recommendations", special: "recommendations" });
+                    browseChips.push({ label: it ? "Recenti" : "Recent", special: "recent" });
+                    browseChips.push({ label: it ? "Libreria" : "Library", special: "library" });
+                }
+                this._categories = [...browseChips, ...libraryCats];
             } else {
                 // YouTube Music: cascade into Home, then resolve the curated filters
                 const homeItem = this._rootItems.find(
@@ -228,11 +250,14 @@ export class YTMusicPlayingCard extends LitElement {
     private async _openChipPopup(category: any, index: number) {
         this._activeFilter = index;
         this._popupTitle = category.label;
+        this._popupStack = [];
         this._popupItems = [];
         this._popupOpen = true;
         this._popupLoading = true;
         try {
-            if (category.item) {
+            if (category.special) {
+                this._popupItems = await this._maBrowse(category.special);
+            } else if (category.item) {
                 this._popupItems = await this._browseInto(category.item);
             }
         } catch (e) {
@@ -241,13 +266,130 @@ export class YTMusicPlayingCard extends LitElement {
         this._popupLoading = false;
     }
 
-    private _playPopupItem(item: any) {
+    // Normalize a Music Assistant media item (from get_recommendations / get_library)
+    // into the popup item shape used by the card.
+    private _maItem(it: any): any {
+        const artists = Array.isArray(it.artists)
+            ? it.artists.map((a: any) => a?.name).filter(Boolean).join(", ")
+            : "";
+        const name = it.name || it.title || "";
+        return {
+            title: artists ? `${artists} - ${name}` : name,
+            thumbnail: it.image || it.thumbnail || "",
+            media_content_id: it.uri || it.media_content_id,
+            media_content_type: it.media_type || it.media_content_type || "track",
+        };
+    }
+
+    // Load one of the advanced browse sections. Returns popup items (leaves or folders).
+    private async _maBrowse(kind: string): Promise<any[]> {
+        const it = getUILang() === "it";
+        if (kind === "recommendations") {
+            const res: any = await this._hass.callWS({
+                type: "call_service", domain: "mass_queue", service: "get_recommendations",
+                service_data: { entity: this._config.entity_id }, return_response: true,
+            });
+            const folders = res?.response?.response || res?.response || [];
+            return (Array.isArray(folders) ? folders : []).map((f: any) => {
+                const imgs = (f.items || []).map((x: any) => x.image).filter(Boolean);
+                return {
+                    title: f.name,
+                    thumbnail: f.image || imgs[0] || "",
+                    mosaic: !f.image && imgs.length >= 4 ? imgs.slice(0, 4) : null,
+                    folderIcon: (!f.image && !imgs.length) ? "mdi:folder-music" : "",
+                    children: (f.items || []).map((x: any) => this._maItem(x)),
+                };
+            });
+        }
+        if (kind === "recent") {
+            const cfg = await this._getMAConfigEntryId(this._config.entity_id);
+            const res: any = await this._hass.callWS({
+                type: "call_service", domain: "music_assistant", service: "get_library",
+                service_data: { config_entry_id: cfg, media_type: "track", order_by: "last_played_desc", limit: 100 },
+                return_response: true,
+            });
+            return (res?.response?.items || []).map((x: any) => this._maItem(x));
+        }
+        if (kind === "library") {
+            // Show the saved library collections by type (lazy-loaded on drill-in).
+            const cfg = await this._getMAConfigEntryId(this._config.entity_id);
+            const mk = (type: string, label: string, icon: string) => ({
+                title: label, folderIcon: icon,
+                load: { domain: "music_assistant", service: "get_library",
+                    service_data: { config_entry_id: cfg, media_type: type, limit: 300 } },
+            });
+            return [
+                mk("playlist", it ? "Playlist" : "Playlists", "mdi:playlist-music"),
+                mk("album", it ? "Album" : "Albums", "mdi:album"),
+                mk("artist", it ? "Artisti" : "Artists", "mdi:account-music"),
+                mk("track", it ? "Brani" : "Tracks", "mdi:music-note"),
+                mk("radio", "Radio", "mdi:radio"),
+            ];
+        }
+        return [];
+    }
+
+    private _popupBack() {
+        const prev = this._popupStack[this._popupStack.length - 1];
+        if (!prev) return;
+        this._popupStack = this._popupStack.slice(0, -1);
+        this._popupTitle = prev.title;
+        this._popupItems = prev.items;
+    }
+
+    private async _playPopupItem(item: any) {
+        // Folder with preloaded children → drill in.
+        if (item.children) {
+            this._popupStack = [...this._popupStack, { title: this._popupTitle, items: this._popupItems }];
+            this._popupTitle = this._cleanTitle(item.title);
+            this._popupItems = item.children;
+            return;
+        }
+        // Folder to lazy-load → drill in and fetch.
+        if (item.load) {
+            this._popupStack = [...this._popupStack, { title: this._popupTitle, items: this._popupItems }];
+            this._popupTitle = this._cleanTitle(item.title);
+            this._popupItems = [];
+            this._popupLoading = true;
+            try {
+                const res: any = await this._hass.callWS({
+                    type: "call_service", ...item.load, return_response: true,
+                });
+                this._popupItems = (res?.response?.items || []).map((x: any) => this._maItem(x));
+            } catch (e) {
+                console.error("YTMusic: favorites load failed", e);
+                this._popupItems = [];
+            }
+            this._popupLoading = false;
+            return;
+        }
+        // Leaf → play it.
         this._hass.callService("media_player", "play_media", {
             entity_id: this._config.entity_id,
             media_content_id: item.media_content_id,
             media_content_type: item.media_content_type,
         });
         this._popupOpen = false;
+    }
+
+    // Resolve the Music Assistant config entry id for an entity. Prefers the entity
+    // registry mapping; falls back to querying the config entries so it still works on
+    // setups where hass.entities lacks the mapping. Cached per entity.
+    private _maConfigEntryIdByEntity: Record<string, string> = {};
+    private async _getMAConfigEntryId(entityId: string): Promise<string | null> {
+        if (this._maConfigEntryIdByEntity[entityId]) return this._maConfigEntryIdByEntity[entityId];
+        const direct = this._hass.entities?.[entityId]?.config_entry_id;
+        if (direct) { this._maConfigEntryIdByEntity[entityId] = direct; return direct; }
+        try {
+            const res: any = await this._hass.callWS({ type: "config_entries/get", domain: "music_assistant" });
+            const entries: any[] = Array.isArray(res) ? res : (res?.entries || res?.data || []);
+            const entry = entries.find((e: any) => e.domain === "music_assistant") || entries[0];
+            const id = entry && (entry.entry_id || entry.entryId || entry.id);
+            if (id) { this._maConfigEntryIdByEntity[entityId] = id; return id; }
+        } catch (e) {
+            console.warn("YTMusic: failed to resolve Music Assistant config entry", e);
+        }
+        return null;
     }
 
     private async _doSearch() {
@@ -257,9 +399,9 @@ export class YTMusicPlayingCard extends LitElement {
         try {
             if (this._isMA) {
                 // Music Assistant native search (music_assistant.search) — richer results
-                // grouped by type. config_entry_id is derived from the entity registry so
+                // grouped by type. config_entry_id is resolved (registry + fallback) so
                 // this works on any installation.
-                const configEntryId = this._hass.entities?.[this._config.entity_id]?.config_entry_id;
+                const configEntryId = await this._getMAConfigEntryId(this._config.entity_id);
                 if (configEntryId) {
                     const service_data: any = { config_entry_id: configEntryId, name: q, limit: 20 };
                     if (this._searchType) service_data.media_type = [this._searchType];
@@ -345,7 +487,58 @@ export class YTMusicPlayingCard extends LitElement {
             media_content_id: item.media_content_id,
             media_content_type: item.media_content_type,
         });
-        this._searchOpen = false;
+        // Keep the search open (results stay saved) so more items can be picked;
+        // just refresh the queue to reflect the change.
+        setTimeout(() => { if (this._showQueue) this._fetchQueue(); }, 1000);
+    }
+
+    // --- Enqueue menu (Music Assistant) ---
+    private _enqueueOptions(): { key: string; label: string; icon: string; radio?: boolean }[] {
+        const it = getUILang() === "it";
+        return [
+            { key: "play", icon: "mdi:play", label: it ? "Riproduci ora" : "Play now" },
+            { key: "next", icon: "mdi:playlist-play", label: it ? "Riproduci dopo" : "Play next" },
+            { key: "add", icon: "mdi:playlist-plus", label: it ? "Aggiungi in coda" : "Add to queue" },
+            { key: "replace", icon: "mdi:playlist-remove", label: it ? "Riproduci e svuota coda" : "Play now & clear queue" },
+            { key: "radio", radio: true, icon: "mdi:radio-tower", label: it ? "Play radio" : "Play radio" },
+        ];
+    }
+
+    private _openEnqueueMenu(item: any, ev: Event) {
+        ev.stopPropagation();
+        this._enqueueItem = item;
+    }
+
+    private _enqueue(opt: { key: string; radio?: boolean }) {
+        const item = this._enqueueItem;
+        this._enqueueItem = null;
+        if (!item) return;
+        const data: any = {
+            entity_id: this._config.entity_id,
+            media_id: item.media_content_id,
+            media_type: item.media_content_type,
+        };
+        if (opt.radio) data.radio_mode = true; else data.enqueue = opt.key;
+        this._hass.callService("music_assistant", "play_media", data);
+        // Keep the search/category popup open so more items can be queued in a row;
+        // just refresh the queue to reflect the change.
+        setTimeout(() => { if (this._showQueue) this._fetchQueue(); }, 1000);
+    }
+
+    private _renderEnqueueMenu() {
+        return html`
+            <div class="chip-popup-backdrop" @click=${() => { this._enqueueItem = null; }}>
+                <div class="enq-menu" @click=${(e: Event) => e.stopPropagation()}>
+                    <div class="cp-handle"></div>
+                    <div class="enq-title">${this._cleanTitle(this._enqueueItem?.title || "")}</div>
+                    ${this._enqueueOptions().map((o) => html`
+                        <button class="enq-opt" @click=${() => this._enqueue(o)}>
+                            <ha-icon icon="${o.icon}"></ha-icon>
+                            <span>${o.label}</span>
+                        </button>`)}
+                </div>
+            </div>
+        `;
     }
 
     _renderSearchPopup() {
@@ -381,7 +574,9 @@ export class YTMusicPlayingCard extends LitElement {
                                             ? html`<img class="cp-thumb" src="${it.thumbnail}">`
                                             : html`<div class="cp-thumb cp-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
                                         <div class="cp-info"><div class="cp-t">${this._cleanTitle(it.title)}</div></div>
-                                        <ha-icon icon="mdi:play" class="cp-play"></ha-icon>
+                                        ${this._isMA && this._feat("enqueue_menu")
+                                            ? html`<button class="cp-more" @click=${(e: Event) => this._openEnqueueMenu(it, e)}><ha-icon icon="mdi:dots-vertical"></ha-icon></button>`
+                                            : html`<ha-icon icon="mdi:play" class="cp-play"></ha-icon>`}
                                     </div>`)}
                               </div>`
                             : html`<div class="cp-msg">${this._searchQuery
@@ -398,7 +593,11 @@ export class YTMusicPlayingCard extends LitElement {
                 <div class="chip-popup" @click=${(e: Event) => e.stopPropagation()}>
                     <div class="cp-handle"></div>
                     <div class="cp-head">
-                        <span class="cp-title">${this._popupTitle}</span>
+                        ${this._popupStack.length
+                            ? html`<button class="icon-btn" @click=${() => this._popupBack()}>
+                                <ha-icon icon="mdi:arrow-left"></ha-icon></button>`
+                            : nothing}
+                        <span class="cp-title">${this._cleanTitle(this._popupTitle)}</span>
                         <button class="icon-btn" @click=${() => { this._popupOpen = false; }}>
                             <ha-icon icon="mdi:close"></ha-icon>
                         </button>
@@ -406,17 +605,157 @@ export class YTMusicPlayingCard extends LitElement {
                     ${this._popupLoading
                         ? html`<div class="cp-msg"><ha-icon icon="mdi:loading" class="spin"></ha-icon></div>`
                         : this._popupItems.length
-                            ? html`<div class="cp-list">
-                                ${this._popupItems.map((it: any) => html`
-                                    <div class="cp-item" @click=${() => this._playPopupItem(it)}>
-                                        ${it.thumbnail
-                                            ? html`<img class="cp-thumb" src="${it.thumbnail}">`
-                                            : html`<div class="cp-thumb cp-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
-                                        <div class="cp-info"><div class="cp-t">${this._cleanTitle(it.title)}</div></div>
-                                        <ha-icon icon="mdi:play" class="cp-play"></ha-icon>
-                                    </div>`)}
-                              </div>`
-                            : html`<div class="cp-msg">Nessun elemento</div>`}
+                            ? (this._popupUsesGrid()
+                                ? html`<div class="cp-grid">
+                                    ${this._popupItems.map((it: any) => this._renderPopupTile(it))}
+                                  </div>`
+                                : html`<div class="cp-list">
+                                    ${this._popupItems.map((it: any) => this._renderPopupRow(it))}
+                                  </div>`)
+                            : html`<div class="cp-msg">${getUILang() === "it" ? "Nessun elemento" : "No items"}</div>`}
+                </div>
+            </div>
+        `;
+    }
+
+    // Browse popups always use the large cover grid (folders, playlists, albums and
+    // tracks alike). Search results keep their own list layout.
+    private _popupUsesGrid(): boolean {
+        return this._popupItems.length > 0;
+    }
+
+    private _renderPopupTile(it: any) {
+        const isFolder = !!(it.children || it.load);
+        const isTrack = !isFolder && (it.media_content_type ?? "track") === "track";
+        return html`
+            <div class="cp-tile" @click=${() => this._playPopupItem(it)}>
+                <div class="cp-tile-art">
+                    ${it.mosaic
+                        ? html`<div class="cp-mosaic">${it.mosaic.map((u: string) => html`<img src="${u}">`)}</div>`
+                        : (it.thumbnail
+                            ? html`<img src="${it.thumbnail}">`
+                            : html`<div class="cp-tile-ph"><ha-icon icon="${it.folderIcon || "mdi:music"}"></ha-icon></div>`)}
+                    ${isFolder
+                        ? nothing
+                        : (this._isMA && this._feat("enqueue_menu")
+                            ? html`<button class="cp-tile-more" @click=${(e: Event) => this._openEnqueueMenu(it, e)}>
+                                <ha-icon icon="mdi:dots-vertical"></ha-icon></button>`
+                            : html`<div class="cp-tile-play"><ha-icon icon="mdi:play"></ha-icon></div>`)}
+                </div>
+                <div class="cp-tile-label ${isTrack ? "" : "bold"}">${this._cleanTitle(it.title)}</div>
+            </div>`;
+    }
+
+    private _renderPopupRow(it: any) {
+        const isFolder = !!(it.children || it.load);
+        return html`
+            <div class="cp-item" @click=${() => this._playPopupItem(it)}>
+                ${it.thumbnail
+                    ? html`<img class="cp-thumb" src="${it.thumbnail}">`
+                    : html`<div class="cp-thumb cp-thumb-ph"><ha-icon icon="${it.folderIcon || "mdi:music"}"></ha-icon></div>`}
+                <div class="cp-info"><div class="cp-t">${this._cleanTitle(it.title)}</div></div>
+                ${isFolder
+                    ? html`<ha-icon icon="mdi:chevron-right" class="cp-play"></ha-icon>`
+                    : (this._isMA && this._feat("enqueue_menu")
+                        ? html`<button class="cp-more" @click=${(e: Event) => this._openEnqueueMenu(it, e)}><ha-icon icon="mdi:dots-vertical"></ha-icon></button>`
+                        : html`<ha-icon icon="mdi:play" class="cp-play"></ha-icon>`)}
+            </div>`;
+    }
+
+    // --- Players / multi-room (Music Assistant) ---
+    private _maPlayers(): any[] {
+        const ents = this._hass?.entities || {};
+        const sp = this._config.speakers;
+        const explicit = Array.isArray(sp) && sp.length > 0;
+        const out: any[] = [];
+        for (const [id, st] of Object.entries(this._hass?.states || {})) {
+            if (!id.startsWith("media_player.")) continue;
+            const s: any = st;
+            if (s.state === "unavailable" || s.state === "unknown") continue;
+            if (explicit) {
+                // Whitelist mode: show exactly the configured players.
+                if (!sp.includes(id)) continue;
+            } else {
+                // Auto mode: only Music Assistant players.
+                const isMA = ents[id]?.platform === "music_assistant"
+                    || s.attributes?.app_id === "music_assistant"
+                    || Array.isArray(s.attributes?.group_members);
+                if (!isMA) continue;
+            }
+            out.push({ id, state: s.state, attributes: s.attributes });
+        }
+        const master = this._config.entity_id;
+        out.sort((a, b) => {
+            if (a.id === master) return -1;
+            if (b.id === master) return 1;
+            const ap = a.state === "playing" ? 0 : 1, bp = b.state === "playing" ? 0 : 1;
+            if (ap !== bp) return ap - bp;
+            return (a.attributes.friendly_name || "") < (b.attributes.friendly_name || "") ? -1 : 1;
+        });
+        return out;
+    }
+
+    private _togglePlayerGroup(p: any, ev: Event) {
+        ev.stopPropagation();
+        const masterId = this._config.entity_id;
+        if (p.id === masterId) return;
+        const masterGroup: string[] = this._entity?.attributes?.group_members || [];
+        if (masterGroup.includes(p.id)) {
+            this._hass.callService("media_player", "unjoin", { entity_id: p.id });
+        } else {
+            this._hass.callService("media_player", "join", { entity_id: masterId, group_members: [p.id] });
+        }
+    }
+
+    private _setPlayerVolume(p: any, v: number, ev: Event) {
+        ev.stopPropagation();
+        this._hass.callService("media_player", "volume_set", { entity_id: p.id, volume_level: v });
+    }
+
+    private _renderPlayersPopup() {
+        const it = getUILang() === "it";
+        const masterId = this._config.entity_id;
+        const masterGroup: string[] = this._entity?.attributes?.group_members || [];
+        const players = this._maPlayers();
+        return html`
+            <div class="chip-popup-backdrop" @click=${() => { this._playersOpen = false; }}>
+                <div class="chip-popup" @click=${(e: Event) => e.stopPropagation()}>
+                    <div class="cp-handle"></div>
+                    <div class="cp-head">
+                        <span class="cp-title">${it ? "Casse" : "Players"}</span>
+                        <button class="icon-btn" @click=${() => { this._playersOpen = false; }}>
+                            <ha-icon icon="mdi:close"></ha-icon>
+                        </button>
+                    </div>
+                    <div class="cp-list">
+                        ${players.map((p) => {
+                            const isMaster = p.id === masterId;
+                            const grouped = isMaster || masterGroup.includes(p.id);
+                            const playing = p.state === "playing";
+                            const vol = typeof p.attributes.volume_level === "number" ? p.attributes.volume_level : 0;
+                            return html`
+                                <div class="pl-row ${grouped ? "grouped" : ""}">
+                                    <ha-icon class="pl-ico" icon="${playing ? "mdi:speaker-play" : "mdi:speaker"}"></ha-icon>
+                                    <div class="pl-info">
+                                        <div class="pl-name">${p.attributes.friendly_name || p.id}</div>
+                                        <div class="pl-vol">
+                                            <ha-icon icon="mdi:volume-medium"></ha-icon>
+                                            <input type="range" min="0" max="1" step="0.01" .value=${String(vol)}
+                                                @change=${(e: any) => this._setPlayerVolume(p, parseFloat(e.target.value), e)}
+                                                @click=${(e: Event) => e.stopPropagation()} />
+                                        </div>
+                                    </div>
+                                    ${isMaster
+                                        ? html`<span class="pl-master">${it ? "Principale" : "Main"}</span>`
+                                        : html`<button class="pl-group ${grouped ? "on" : ""}"
+                                            title=${grouped ? (it ? "Sgancia" : "Ungroup") : (it ? "Raggruppa" : "Group")}
+                                            @click=${(e: Event) => this._togglePlayerGroup(p, e)}>
+                                            <ha-icon icon="${grouped ? "mdi:link-variant" : "mdi:link-variant-plus"}"></ha-icon>
+                                        </button>`}
+                                </div>`;
+                        })}
+                        ${players.length === 0 ? html`<div class="cp-msg">${it ? "Nessuna cassa" : "No players"}</div>` : nothing}
+                    </div>
                 </div>
             </div>
         `;
@@ -434,6 +773,8 @@ export class YTMusicPlayingCard extends LitElement {
                 ${this._renderFullPlayer()}
                 ${this._popupOpen ? this._renderChipPopup() : nothing}
                 ${this._searchOpen ? this._renderSearchPopup() : nothing}
+                ${this._enqueueItem ? this._renderEnqueueMenu() : nothing}
+                ${this._playersOpen ? this._renderPlayersPopup() : nothing}
             </ha-card>
         `;
     }
@@ -480,7 +821,8 @@ export class YTMusicPlayingCard extends LitElement {
         for (const [key, value] of Object.entries(this._hass["states"])) {
             if (key.startsWith("media_player")) {
                 if ((value as any)?.attributes?.remote_player_id) continue;
-                if ("speakers" in this._config && !this._config.speakers.includes(key)) continue;
+                const sp = this._config.speakers;
+                if (Array.isArray(sp) && sp.length && !sp.includes(key)) continue;
                 media_players.push([key, value["attributes"]["friendly_name"]]);
             }
         }
@@ -488,7 +830,10 @@ export class YTMusicPlayingCard extends LitElement {
 
         return html`
             <div class="source-wrap">
-                <button class="icon-btn cast-btn" @click=${(e: Event) => this._toggleMenu(e, menuId)}>
+                <button class="icon-btn cast-btn" @click=${(e: Event) => {
+                    if (this._isMA && this._feat("players")) { e.stopPropagation(); this._playersOpen = true; }
+                    else { this._toggleMenu(e, menuId); }
+                }}>
                     ${CastAudioIcon}
                 </button>
                 ${this._menuOpen === menuId ? html`
@@ -545,18 +890,24 @@ export class YTMusicPlayingCard extends LitElement {
         const title = this._entity?.attributes?.media_title || "Sconosciuto";
         const artist = this._entity?.attributes?.media_artist || "";
         const playing = this._entity?.state === "playing";
+        const animate = playing && this._feat("cover_animation");
+        const glow = playing && this._feat("cover_glow");
+        const animS = this._config.anim_speed ?? 6;
+        const glowPct = this._config.glow_size ?? 100;
+        const styleVars = `--fp-anim:${animS}s; --fp-hue:${animS * 2}s; --fp-glow-size:${glowPct}%;`
+            + (art ? ` --fp-bg: url('${art}');` : "");
 
         return html`
-            <div class="full-player"
-                style="${art ? `--fp-bg: url('${art}')` : ""}">
+            <div class="full-player" style="${styleVars}">
                 <div class="fp-bg-blur"></div>
                 <div class="fp-content">
                     <div class="fp-header">
                         <span class="fp-logo">${YTLogoSVG}<b>Music</b></span>
                         <span class="fp-from">${_t("nowPlaying")}</span>
-                        <button class="icon-btn" @click=${() => { this._searchOpen = true; this._searchResults = []; }}>
+                        ${this._feat("show_search") ? html`
+                        <button class="icon-btn" @click=${() => { this._searchOpen = true; }}>
                             <ha-icon icon="mdi:magnify"></ha-icon>
-                        </button>
+                        </button>` : nothing}
                         ${this._renderSourceSelector("full-player")}
                     </div>
                     <div class="fp-tabs">
@@ -564,23 +915,25 @@ export class YTMusicPlayingCard extends LitElement {
                             @click=${() => { this._showQueue = false; }}>
                             ${_t("tabPlay")}
                         </button>
-                        ${!this._isMA ? html`
+                        ${this._feat("show_queue") ? html`
                         <button class="fp-tab ${this._showQueue ? "active" : ""}"
                             @click=${() => { this._showQueue = true; this._fetchQueue(); }}>
                             ${_t("queue")}
                         </button>` : nothing}
                     </div>
+                    ${this._feat("show_chips") ? html`
                     <div class="fp-chips" @wheel=${this._onPillsWheel}>
                         ${this._categories.map((c, i) => html`
                             <button class="fp-chip ${this._activeFilter === i ? "active" : ""}"
                                 @click=${() => this._openChipPopup(c, i)}
                             >${c.label}</button>`)}
-                    </div>
+                    </div>` : nothing}
                     ${this._showQueue ? this._renderQueue() : html`
                         <div class="fp-art-wrap">
+                            <div class="fp-glow ${glow ? "on" : ""}"></div>
                             ${art
-                                ? html`<img class="fp-art ${playing ? "playing" : ""}" src="${art}">`
-                                : html`<div class="fp-art-ph ${playing ? "playing" : ""}"><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
+                                ? html`<img class="fp-art ${animate ? "playing" : ""}" src="${art}">`
+                                : html`<div class="fp-art-ph ${animate ? "playing" : ""}"><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
                         </div>
                         <div class="fp-info">
                             <div>
@@ -604,29 +957,54 @@ export class YTMusicPlayingCard extends LitElement {
         this._queueTracks = [];
 
         if (this._isMA) {
-            // Music Assistant: get the active queue via the music_assistant.get_queue action.
+            // Music Assistant: the full queue is only available through the companion
+            // integration "Music Assistant Queue Actions" (mass_queue). If installed it
+            // returns every item; otherwise we fall back to current + next via
+            // music_assistant.get_queue.
             try {
                 const res: any = await this._hass.callWS({
                     type: "call_service",
-                    domain: "music_assistant",
-                    service: "get_queue",
-                    target: { entity_id: this._config.entity_id },
+                    domain: "mass_queue",
+                    service: "get_queue_items",
+                    // Window around the current item: a little history + everything upcoming,
+                    // so the playing track stays near the top instead of after the whole history.
+                    service_data: { entity: this._config.entity_id, limit_before: 3, limit_after: 400 },
                     return_response: true,
                 });
-                const q = res?.response?.[this._config.entity_id];
-                this._queueCurrentIndex = q?.current_index ?? -1;
-                this._queueTracks = (q?.items || []).map((it: any) => {
-                    const mi = it.media_item || {};
-                    const artist = mi.artists?.[0]?.name || "";
-                    const name = mi.name || it.name || "";
-                    return {
-                        title: artist ? `${artist} - ${name}` : name,
-                        thumbnail: mi.image || "",
-                    };
-                });
+                const list: any[] = res?.response?.[this._config.entity_id] || [];
+                const curId = this._entity?.attributes?.media_content_id;
+                this._queueCurrentIndex = list.findIndex((it) => it.media_content_id === curId);
+                this._queueTracks = list.map((it: any) => ({
+                    title: it.media_artist ? `${it.media_artist} - ${it.media_title}` : it.media_title,
+                    thumbnail: it.local_image_encoded || it.media_image || "",
+                    queue_item_id: it.queue_item_id,
+                }));
             } catch (e) {
-                console.error("[MA queue] get_queue failed", e);
-                this._queueTracks = [];
+                // mass_queue not installed → degrade gracefully to current + next.
+                try {
+                    const res: any = await this._hass.callWS({
+                        type: "call_service",
+                        domain: "music_assistant",
+                        service: "get_queue",
+                        target: { entity_id: this._config.entity_id },
+                        return_response: true,
+                    });
+                    const q = res?.response?.[this._config.entity_id];
+                    const items = [q?.current_item, q?.next_item].filter(Boolean);
+                    this._queueCurrentIndex = q?.current_item ? 0 : -1;
+                    this._queueTracks = items.map((it: any) => {
+                        const mi = it.media_item || {};
+                        const artist = mi.artists?.[0]?.name || "";
+                        const name = mi.name || it.name || "";
+                        return {
+                            title: artist ? `${artist} - ${name}` : name,
+                            thumbnail: mi.image || "",
+                        };
+                    });
+                } catch (e2) {
+                    console.error("[MA queue] no queue source available", e2);
+                    this._queueTracks = [];
+                }
             }
             this._queueLoading = false;
             return;
@@ -648,12 +1026,41 @@ export class YTMusicPlayingCard extends LitElement {
     }
 
     private _queueItemClick(i: number) {
-        if (this._isMA) return; // MA queue is view-only for now
+        if (this._isMA) {
+            // Jump to the tapped queue item (requires the mass_queue integration).
+            const qid = this._queueTracks?.[i]?.queue_item_id;
+            if (qid === undefined) return; // fallback source (current+next) is view-only
+            this._hass.callService("mass_queue", "play_queue_item", {
+                entity: this._config.entity_id,
+                queue_item_id: qid,
+            });
+            // Optimistically highlight the tapped track, then re-sync once MA switches.
+            this._queueCurrentIndex = i;
+            this.requestUpdate();
+            setTimeout(() => this._fetchQueue(), 1000);
+            return;
+        }
         this._hass.callService("ytube_music_player", "call_method", {
             entity_id: this._config.entity_id,
             command: "goto_track",
             parameters: i + 1,
         });
+    }
+
+    // --- Music Assistant queue management (requires the mass_queue integration) ---
+    private async _maQueueAction(service: string, qid: string, ev: Event) {
+        ev.stopPropagation();
+        if (!qid) return;
+        try {
+            await this._hass.callService("mass_queue", service, {
+                entity: this._config.entity_id,
+                queue_item_id: qid,
+            });
+        } catch (e) {
+            console.error(`YTMusic: mass_queue.${service} failed`, e);
+        }
+        // Refresh the queue to reflect the change.
+        setTimeout(() => this._fetchQueue(), 300);
     }
 
     _renderQueue() {
@@ -679,6 +1086,12 @@ export class YTMusicPlayingCard extends LitElement {
                     const title = dashIdx > 0 ? rawTitle.substring(dashIdx + 3) : rawTitle;
                     const thumb = track.thumbnail || "";
                     const isCurrent = i === currentTrack;
+                    // Queue management is available for Music Assistant items that come
+                    // after the current one (and require a queue_item_id).
+                    const qid = track.queue_item_id;
+                    const showActions = this._isMA && this._feat("queue_actions") && qid !== undefined
+                        && currentTrack >= 0 && i > currentTrack;
+                    const canMoveUp = i > currentTrack + 1;
                     return html`
                         <div class="fp-queue-item ${isCurrent ? "current" : ""}"
                             @click=${() => this._queueItemClick(i)}>
@@ -690,6 +1103,22 @@ export class YTMusicPlayingCard extends LitElement {
                                 ${artist ? html`<div class="fp-qi-artist">${artist}</div>` : nothing}
                             </div>
                             ${isCurrent ? html`<ha-icon icon="mdi:volume-high" class="fp-qi-playing"></ha-icon>` : nothing}
+                            ${showActions ? html`
+                                <div class="fp-qi-actions" @click=${(e: Event) => e.stopPropagation()}>
+                                    <button class="fp-qi-act" title="Riproduci dopo"
+                                        @click=${(e: Event) => this._maQueueAction("move_queue_item_next", qid, e)}>
+                                        <ha-icon icon="mdi:playlist-play"></ha-icon></button>
+                                    ${canMoveUp ? html`
+                                    <button class="fp-qi-act" title="Su"
+                                        @click=${(e: Event) => this._maQueueAction("move_queue_item_up", qid, e)}>
+                                        <ha-icon icon="mdi:arrow-up"></ha-icon></button>` : nothing}
+                                    <button class="fp-qi-act" title="Giù"
+                                        @click=${(e: Event) => this._maQueueAction("move_queue_item_down", qid, e)}>
+                                        <ha-icon icon="mdi:arrow-down"></ha-icon></button>
+                                    <button class="fp-qi-act" title="Rimuovi"
+                                        @click=${(e: Event) => this._maQueueAction("remove_queue_item", qid, e)}>
+                                        <ha-icon icon="mdi:close"></ha-icon></button>
+                                </div>` : nothing}
                         </div>
                     `;
                 })}
@@ -1043,6 +1472,7 @@ export class YTMusicPlayingCard extends LitElement {
 
             .fp-art-wrap {
                 flex: 1;
+                position: relative;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -1050,19 +1480,50 @@ export class YTMusicPlayingCard extends LitElement {
                 min-height: 0;
             }
 
+            /* animated colored halo behind the cover */
+            .fp-glow {
+                position: absolute;
+                width: min(var(--fp-glow-size, 100%), 130vw);
+                aspect-ratio: 1 / 1;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(255,0,0,0.85) 0%, rgba(255,0,0,0.5) 40%, rgba(255,0,0,0.15) 62%, rgba(255,0,0,0) 78%);
+                filter: blur(30px);
+                z-index: 0;
+                opacity: 0;
+                transition: opacity 0.5s ease;
+                pointer-events: none;
+            }
+            .fp-glow.on {
+                opacity: 1;
+                animation: fp-glow-pulse var(--fp-anim, 6s) ease-in-out infinite,
+                           fp-glow-hue var(--fp-hue, 12s) linear infinite;
+            }
+            @keyframes fp-glow-pulse {
+                0%, 100% { transform: scale(0.82); }
+                50%      { transform: scale(1.35); }
+            }
+            @keyframes fp-glow-hue {
+                from { filter: blur(30px) hue-rotate(0deg); }
+                to   { filter: blur(30px) hue-rotate(360deg); }
+            }
+
             .fp-art {
+                position: relative;
+                z-index: 1;
                 max-width: 100%;
                 max-height: 100%;
-                border-radius: 8px;
+                border-radius: 50%;
                 box-shadow: 0 8px 40px rgba(0,0,0,0.6);
                 aspect-ratio: 1/1;
                 object-fit: cover;
             }
 
             .fp-art-ph {
+                position: relative;
+                z-index: 1;
                 width: 240px;
                 height: 240px;
-                border-radius: 8px;
+                border-radius: 50%;
                 background: var(--yt-surface);
                 display: flex;
                 align-items: center;
@@ -1070,22 +1531,17 @@ export class YTMusicPlayingCard extends LitElement {
                 color: var(--yt-text2);
             }
 
-            /* undulating "breathing" cover while playing */
+            /* undulating "breathing" cover while playing — stays round, never square */
             .fp-art.playing,
             .fp-art-ph.playing {
-                animation: fp-ondula 4.5s ease-in-out infinite,
-                           fp-glow 4.5s ease-in-out infinite;
+                animation: fp-ondula var(--fp-anim, 6s) ease-in-out infinite;
             }
             @keyframes fp-ondula {
-                0%   { border-radius: 8px; transform: translateY(0) rotate(0deg) scale(1); }
-                25%  { border-radius: 44% 56% 52% 48% / 50% 46% 54% 50%; transform: translateY(-4px) rotate(-1.2deg) scale(1.015); }
-                50%  { border-radius: 56% 44% 48% 52% / 54% 50% 50% 46%; transform: translateY(3px) rotate(1deg) scale(0.99); }
-                75%  { border-radius: 48% 52% 56% 44% / 46% 54% 48% 52%; transform: translateY(-2px) rotate(0.8deg) scale(1.01); }
-                100% { border-radius: 8px; transform: translateY(0) rotate(0deg) scale(1); }
-            }
-            @keyframes fp-glow {
-                0%, 100% { box-shadow: 0 8px 40px rgba(0,0,0,0.6); }
-                50% { box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 10px 50px rgba(255,0,0,0.35); }
+                0%   { border-radius: 50%; transform: translateY(0) rotate(0deg) scale(1); }
+                25%  { border-radius: 40% 60% 55% 45% / 52% 42% 58% 48%; transform: translateY(-11px) rotate(-2.6deg) scale(1.05); }
+                50%  { border-radius: 60% 40% 46% 54% / 58% 50% 50% 42%; transform: translateY(8px) rotate(2.2deg) scale(0.94); }
+                75%  { border-radius: 46% 54% 60% 40% / 44% 58% 42% 56%; transform: translateY(-6px) rotate(1.8deg) scale(1.03); }
+                100% { border-radius: 50%; transform: translateY(0) rotate(0deg) scale(1); }
             }
 
             .fp-info {
@@ -1239,6 +1695,187 @@ export class YTMusicPlayingCard extends LitElement {
                 text-overflow: ellipsis;
             }
             .cp-play { color: var(--yt-red, #ff0000); flex-shrink: 0; }
+            .cp-more {
+                background: none;
+                border: none;
+                color: var(--yt-text2);
+                cursor: pointer;
+                flex-shrink: 0;
+                padding: 4px;
+                border-radius: 50%;
+                display: flex;
+                --mdc-icon-size: 20px;
+            }
+            .cp-more:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+            .cp-grid {
+                flex: 1;
+                overflow-y: auto;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 14px 12px;
+                padding: 4px 2px 8px;
+                align-content: start;
+                scrollbar-width: none;
+            }
+            .cp-grid::-webkit-scrollbar { display: none; }
+            .cp-tile { cursor: pointer; }
+            .cp-tile-art {
+                position: relative;
+                width: 100%;
+                aspect-ratio: 1 / 1;
+                border-radius: 12px;
+                overflow: hidden;
+                background: rgba(255,255,255,0.06);
+            }
+            .cp-tile-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .cp-mosaic {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+                width: 100%; height: 100%;
+            }
+            .cp-mosaic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .cp-tile-ph {
+                width: 100%; height: 100%;
+                display: flex; align-items: center; justify-content: center;
+                color: var(--yt-text2); --mdc-icon-size: 40px;
+            }
+            .cp-tile-more {
+                position: absolute; top: 6px; right: 6px;
+                width: 30px; height: 30px;
+                border: none; border-radius: 50%;
+                background: rgba(0,0,0,0.55);
+                color: #fff; cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                --mdc-icon-size: 18px;
+            }
+            .cp-tile-play {
+                position: absolute; bottom: 6px; right: 6px;
+                width: 34px; height: 34px; border-radius: 50%;
+                background: var(--yt-red, #ff0000); color: #fff;
+                display: flex; align-items: center; justify-content: center;
+                --mdc-icon-size: 20px;
+                opacity: 0; transition: opacity 0.15s;
+            }
+            .cp-tile:hover .cp-tile-play { opacity: 1; }
+            .cp-tile-label {
+                margin-top: 6px;
+                font-size: 12.5px;
+                color: var(--yt-text);
+                line-height: 1.25;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .cp-tile-label.bold { font-weight: 600; }
+            .enq-menu {
+                width: 100%;
+                max-width: 100%;
+                background: rgba(28, 28, 28, 0.96);
+                backdrop-filter: blur(18px);
+                -webkit-backdrop-filter: blur(18px);
+                border-radius: 20px 20px 0 0;
+                border-top: 1px solid rgba(255,255,255,0.12);
+                padding: 10px 10px 20px;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 -12px 40px rgba(0,0,0,0.6);
+                animation: cp-slide 0.2s ease;
+            }
+            .enq-title {
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--yt-text);
+                padding: 4px 10px 10px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+                margin-bottom: 4px;
+            }
+            .enq-opt {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                width: 100%;
+                background: none;
+                border: none;
+                color: var(--yt-text);
+                cursor: pointer;
+                padding: 13px 12px;
+                border-radius: 10px;
+                font-size: 14px;
+                text-align: left;
+                --mdc-icon-size: 22px;
+            }
+            .enq-opt ha-icon { color: var(--yt-text2); flex-shrink: 0; }
+            .enq-opt:hover { background: rgba(255,255,255,0.08); }
+            .enq-opt:hover ha-icon { color: var(--yt-red, #ff0000); }
+
+            .pl-row {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 6px;
+                border-radius: 12px;
+            }
+            .pl-row.grouped { background: rgba(255,0,0,0.10); }
+            .pl-ico { color: var(--yt-text2); flex-shrink: 0; --mdc-icon-size: 26px; }
+            .pl-row.grouped .pl-ico { color: var(--yt-red, #ff0000); }
+            .pl-info { flex: 1; min-width: 0; }
+            .pl-name {
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--yt-text);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .pl-vol {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-top: 4px;
+                --mdc-icon-size: 16px;
+                color: var(--yt-text2);
+            }
+            .pl-vol input[type="range"] {
+                flex: 1;
+                height: 4px;
+                -webkit-appearance: none;
+                appearance: none;
+                background: rgba(255,255,255,0.2);
+                border-radius: 2px;
+                accent-color: var(--yt-red, #ff0000);
+                cursor: pointer;
+            }
+            .pl-group {
+                background: rgba(255,255,255,0.08);
+                border: none;
+                color: var(--yt-text2);
+                cursor: pointer;
+                flex-shrink: 0;
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                --mdc-icon-size: 20px;
+            }
+            .pl-group.on { background: rgba(255,0,0,0.2); color: var(--yt-red, #ff0000); }
+            .pl-group:hover { color: #fff; }
+            .pl-master {
+                flex-shrink: 0;
+                font-size: 11px;
+                font-weight: 700;
+                color: var(--yt-red, #ff0000);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                padding-right: 6px;
+            }
             .cp-msg {
                 flex: 1;
                 display: flex;
@@ -1361,6 +1998,27 @@ export class YTMusicPlayingCard extends LitElement {
                 flex-shrink: 0;
                 --mdc-icon-size: 18px;
             }
+
+            .fp-qi-actions {
+                display: flex;
+                align-items: center;
+                gap: 2px;
+                flex-shrink: 0;
+                opacity: 0.55;
+                transition: opacity 0.15s;
+            }
+            .fp-queue-item:hover .fp-qi-actions { opacity: 1; }
+            .fp-qi-act {
+                background: none;
+                border: none;
+                color: var(--yt-text2);
+                cursor: pointer;
+                padding: 4px;
+                border-radius: 50%;
+                display: flex;
+                --mdc-icon-size: 18px;
+            }
+            .fp-qi-act:hover { color: #fff; background: rgba(255,255,255,0.1); }
 
             .fp-queue-loading, .fp-queue-empty {
                 flex: 1;
