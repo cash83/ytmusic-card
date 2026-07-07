@@ -116,6 +116,8 @@ export class YTMusicPlayingCard extends LitElement {
     @state() _searchActive: boolean = false;
     @state() _enqueueItem: any = null;
     @state() _playersOpen: boolean = false;
+    @state() _queueMenuOpen: boolean = false;
+    @state() _transferMode: boolean = false;
     @query("ytmusic-browser") _browser: any;
     private _rootItems: any[] = [];
     private _homeItems: any[] = [];
@@ -718,12 +720,14 @@ export class YTMusicPlayingCard extends LitElement {
         const masterGroup: string[] = this._entity?.attributes?.group_members || [];
         const players = this._maPlayers();
         return html`
-            <div class="chip-popup-backdrop" @click=${() => { this._playersOpen = false; }}>
+            <div class="chip-popup-backdrop" @click=${() => { this._playersOpen = false; this._transferMode = false; }}>
                 <div class="chip-popup" @click=${(e: Event) => e.stopPropagation()}>
                     <div class="cp-handle"></div>
                     <div class="cp-head">
-                        <span class="cp-title">${it ? "Casse" : "Players"}</span>
-                        <button class="icon-btn" @click=${() => { this._playersOpen = false; }}>
+                        <span class="cp-title">${this._transferMode
+                            ? (it ? "Trasferisci la coda a…" : "Transfer queue to…")
+                            : (it ? "Casse" : "Players")}</span>
+                        <button class="icon-btn" @click=${() => { this._playersOpen = false; this._transferMode = false; }}>
                             <ha-icon icon="mdi:close"></ha-icon>
                         </button>
                     </div>
@@ -734,7 +738,8 @@ export class YTMusicPlayingCard extends LitElement {
                             const playing = p.state === "playing";
                             const vol = typeof p.attributes.volume_level === "number" ? p.attributes.volume_level : 0;
                             return html`
-                                <div class="pl-row ${grouped ? "grouped" : ""}">
+                                <div class="pl-row ${grouped ? "grouped" : ""} ${this._transferMode && !isMaster ? "pickable" : ""}"
+                                    @click=${() => { if (this._transferMode && !isMaster) this._transferQueueTo(p.id); }}>
                                     <ha-icon class="pl-ico" icon="${playing ? "mdi:speaker-play" : "mdi:speaker"}"></ha-icon>
                                     <div class="pl-info">
                                         <div class="pl-name">${p.attributes.friendly_name || p.id}</div>
@@ -745,17 +750,74 @@ export class YTMusicPlayingCard extends LitElement {
                                                 @click=${(e: Event) => e.stopPropagation()} />
                                         </div>
                                     </div>
-                                    ${isMaster
-                                        ? html`<span class="pl-master">${it ? "Principale" : "Main"}</span>`
-                                        : html`<button class="pl-group ${grouped ? "on" : ""}"
-                                            title=${grouped ? (it ? "Sgancia" : "Ungroup") : (it ? "Raggruppa" : "Group")}
-                                            @click=${(e: Event) => this._togglePlayerGroup(p, e)}>
-                                            <ha-icon icon="${grouped ? "mdi:link-variant" : "mdi:link-variant-plus"}"></ha-icon>
-                                        </button>`}
+                                    ${this._transferMode
+                                        ? (isMaster
+                                            ? html`<span class="pl-master">${it ? "Principale" : "Main"}</span>`
+                                            : html`<ha-icon class="pl-arrow" icon="mdi:arrow-right-bold-circle"></ha-icon>`)
+                                        : (isMaster
+                                            ? html`<span class="pl-master">${it ? "Principale" : "Main"}</span>`
+                                            : html`<button class="pl-group ${grouped ? "on" : ""}"
+                                                title=${grouped ? (it ? "Sgancia" : "Ungroup") : (it ? "Raggruppa" : "Group")}
+                                                @click=${(e: Event) => this._togglePlayerGroup(p, e)}>
+                                                <ha-icon icon="${grouped ? "mdi:link-variant" : "mdi:link-variant-plus"}"></ha-icon>
+                                            </button>`)}
                                 </div>`;
                         })}
                         ${players.length === 0 ? html`<div class="cp-msg">${it ? "Nessuna cassa" : "No players"}</div>` : nothing}
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- Queue options menu (clear / transfer for MA, turn off for YT) ---
+    private _clearQueue() {
+        this._queueMenuOpen = false;
+        this._hass.callService("media_player", "clear_playlist", { entity_id: this._config.entity_id });
+        setTimeout(() => { if (this._showQueue) this._fetchQueue(); }, 600);
+    }
+
+    private _startTransfer() {
+        this._queueMenuOpen = false;
+        this._transferMode = true;
+        this._playersOpen = true;
+    }
+
+    private _transferQueueTo(targetId: string) {
+        this._transferMode = false;
+        this._playersOpen = false;
+        this._hass.callService("music_assistant", "transfer_queue", {
+            entity_id: targetId,
+            source_player: this._config.entity_id,
+        });
+    }
+
+    private _turnOff() {
+        this._queueMenuOpen = false;
+        this._hass.callService("media_player", "turn_off", { entity_id: this._config.entity_id });
+    }
+
+    private _renderQueueMenu() {
+        const it = getUILang() === "it";
+        return html`
+            <div class="chip-popup-backdrop" @click=${() => { this._queueMenuOpen = false; }}>
+                <div class="enq-menu" @click=${(e: Event) => e.stopPropagation()}>
+                    <div class="cp-handle"></div>
+                    ${this._isMA
+                        ? html`
+                            <button class="enq-opt" @click=${() => this._startTransfer()}>
+                                <ha-icon icon="mdi:swap-horizontal"></ha-icon>
+                                <span>${it ? "Trasferisci la coda a un'altra cassa" : "Transfer queue to another player"}</span>
+                            </button>
+                            <button class="enq-opt" @click=${() => this._clearQueue()}>
+                                <ha-icon icon="mdi:playlist-remove"></ha-icon>
+                                <span>${it ? "Svuota la coda" : "Clear the queue"}</span>
+                            </button>`
+                        : html`
+                            <button class="enq-opt" @click=${() => this._turnOff()}>
+                                <ha-icon icon="mdi:power"></ha-icon>
+                                <span>${it ? "Spegni" : "Turn off"}</span>
+                            </button>`}
                 </div>
             </div>
         `;
@@ -775,6 +837,7 @@ export class YTMusicPlayingCard extends LitElement {
                 ${this._searchOpen ? this._renderSearchPopup() : nothing}
                 ${this._enqueueItem ? this._renderEnqueueMenu() : nothing}
                 ${this._playersOpen ? this._renderPlayersPopup() : nothing}
+                ${this._queueMenuOpen ? this._renderQueueMenu() : nothing}
             </ha-card>
         `;
     }
@@ -920,6 +983,10 @@ export class YTMusicPlayingCard extends LitElement {
                             @click=${() => { this._showQueue = true; this._fetchQueue(); }}>
                             ${_t("queue")}
                         </button>` : nothing}
+                        <button class="fp-tab-opts" title="${getUILang() === "it" ? "Opzioni coda" : "Queue options"}"
+                            @click=${() => { this._queueMenuOpen = true; }}>
+                            <ha-icon icon="mdi:dots-vertical"></ha-icon>
+                        </button>
                     </div>
                     ${this._feat("show_chips") ? html`
                     <div class="fp-chips" @wheel=${this._onPillsWheel}>
@@ -944,6 +1011,7 @@ export class YTMusicPlayingCard extends LitElement {
                         <ytmusic-media-control
                             .hass=${this._hass}
                             .entity=${this._entity}
+                            @ytmusic-queue-options=${() => { this._queueMenuOpen = true; }}
                         ></ytmusic-media-control>
                     `}
                 </div>
@@ -1867,6 +1935,9 @@ export class YTMusicPlayingCard extends LitElement {
             }
             .pl-group.on { background: rgba(255,0,0,0.2); color: var(--yt-red, #ff0000); }
             .pl-group:hover { color: #fff; }
+            .pl-row.pickable { cursor: pointer; }
+            .pl-row.pickable:hover { background: rgba(255,255,255,0.06); }
+            .pl-arrow { color: var(--yt-red, #ff0000); flex-shrink: 0; --mdc-icon-size: 26px; }
             .pl-master {
                 flex-shrink: 0;
                 font-size: 11px;
@@ -1926,6 +1997,19 @@ export class YTMusicPlayingCard extends LitElement {
             }
 
             .fp-tab:hover { color: var(--yt-text); }
+
+            .fp-tab-opts {
+                margin-left: auto;
+                background: none;
+                border: none;
+                color: var(--yt-text2);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                padding: 0 4px;
+                --mdc-icon-size: 22px;
+            }
+            .fp-tab-opts:hover { color: var(--yt-text); }
 
             /* ── QUEUE LIST ── */
             .fp-queue-list {

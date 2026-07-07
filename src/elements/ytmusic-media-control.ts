@@ -105,6 +105,9 @@ export class YTMusicMediaControl extends LitElement {
                 <button class="pill ${repeatActive ? "on" : ""}" @click=${this._changeRepeat}>
                     ${RepeatIcon}<span>Ripeti</span>
                 </button>
+                <button class="pill pill-icon" title="Opzioni" @click=${this._openQueueOptions}>
+                    <ha-icon icon="mdi:dots-vertical"></ha-icon>
+                </button>
             </div>
 
             <!-- volume pill + speaker on the right -->
@@ -169,6 +172,10 @@ export class YTMusicMediaControl extends LitElement {
             rating: "thumb_toggle_up_middle",
         });
         this.requestUpdate();
+    }
+
+    private _openQueueOptions() {
+        this.dispatchEvent(new CustomEvent("ytmusic-queue-options", { bubbles: true, composed: true }));
     }
 
     async _shuffleList() {
@@ -347,6 +354,8 @@ export class YTMusicMediaControl extends LitElement {
                     cursor: pointer;
                 }
                 .pill svg { width: 16px; height: 16px; fill: currentColor; }
+                .pill-icon { padding: 7px 9px; --mdc-icon-size: 18px; }
+                .pill-icon ha-icon { display: flex; }
                 .pill.on {
                     background: rgba(255, 0, 0, 0.14);
                     border-color: var(--yt-red, #ff0000);

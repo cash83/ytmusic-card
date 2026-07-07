@@ -15,7 +15,7 @@ The **YTMusic Playing Card** is a full "now playing" player with a YouTube-Music
 The card **auto-detects** the media player type from the entity and adapts:
 
 - **YouTube Music** (`ytube_music_player`): now-playing player, curated category chips (For You / Quick picks / From the community / Radio / Playlists / Recent), search with type filters, and the play **queue**.
-- **Music Assistant** (`app_id: music_assistant`): now-playing player, the **full play queue** (reorder / play-next / remove), native MA **search** (`music_assistant.search`), an **Add/Play menu** (play now / next / add to queue / play radio) on every result, an advanced **browser** (Recommendations & Discover, Recent, Library by type — shown as a cover grid), and a **multi-room players** panel (group/ungroup speakers and per-speaker volume).
+- **Music Assistant** (`app_id: music_assistant`): now-playing player, the **full play queue** (reorder / play-next / remove), native MA **search** (`music_assistant.search`), an **Add/Play menu** (play now / next / add to queue / play radio) on every result, an advanced **browser** (Recommendations & Discover, Recent, Library by type — shown as a cover grid), a **multi-room players** panel (group/ungroup speakers and per-speaker volume), and a **queue options** menu (transfer the queue to another player, clear the queue). On YouTube Music the queue menu offers **turn off** instead.
 
 Just point `entity_id` at either a `ytube_music_player` entity or a Music Assistant `media_player` entity.
 
