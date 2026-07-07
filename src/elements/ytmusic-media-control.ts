@@ -67,6 +67,7 @@ export class YTMusicMediaControl extends LitElement {
         const pct = Math.max(0, Math.min(100, this._pct));
         const vol = Math.round((this.entity?.attributes?.volume_level ?? 0) * 100);
         const muted = !!this.entity?.attributes?.is_volume_muted;
+        const isMA = this.entity?.attributes?.app_id === "music_assistant";
 
         const shuffleActive = this._shuffleActive !== undefined
             ? this._shuffleActive
@@ -108,9 +109,9 @@ export class YTMusicMediaControl extends LitElement {
 
             <!-- volume pill + speaker on the right -->
             <div class="volume">
-                <button class="radio-btn" @click=${this._startRadio} title="Radio">
+                ${!isMA ? html`<button class="radio-btn" @click=${this._startRadio} title="Radio">
                     ${RadioTowerIcon}
-                </button>
+                </button>` : nothing}
                 <div class="volwrap">
                     <div class="volfill" style="width:${muted ? 0 : vol}%"></div>
                     <div class="volthumb" style="left:${muted ? 0 : vol}%"></div>

@@ -60,6 +60,36 @@ function _t(key: string): string {
     return (_ytT[getUILang()] ?? _ytT["en"])[key] ?? key;
 }
 
+// Music Assistant browse-root category labels, localized for the UI language.
+const _MA_CAT_LABELS: Record<string, Record<string, string>> = {
+    it: {
+        "artists": "Artisti", "albums": "Album", "tracks": "Brani",
+        "playlists": "Playlist", "radio stations": "Radio", "radios": "Radio",
+        "audiobooks": "Audiolibri", "podcasts": "Podcast", "favorites": "Preferiti",
+    },
+};
+function _maCatLabel(title: string): string {
+    const map = _MA_CAT_LABELS[getUILang()];
+    if (!map) return title;
+    return map[(title ?? "").toLowerCase()] ?? title;
+}
+
+const _SEARCH_TYPES_LABELS: Record<string, { label: string; value: string }[]> = {
+    it: [
+        { label: "Tutto", value: "" }, { label: "Brani", value: "track" },
+        { label: "Album", value: "album" }, { label: "Artisti", value: "artist" },
+        { label: "Playlist", value: "playlist" }, { label: "Radio", value: "radio" },
+    ],
+    en: [
+        { label: "All", value: "" }, { label: "Tracks", value: "track" },
+        { label: "Albums", value: "album" }, { label: "Artists", value: "artist" },
+        { label: "Playlists", value: "playlist" }, { label: "Radios", value: "radio" },
+    ],
+};
+function _searchTypes() {
+    return _SEARCH_TYPES_LABELS[getUILang()] ?? _SEARCH_TYPES_LABELS["en"];
+}
+
 export class YTMusicPlayingCard extends LitElement {
     @state() _config: any = {};
     _hass: any;
@@ -69,11 +99,18 @@ export class YTMusicPlayingCard extends LitElement {
     @state() _showQueue: boolean = false;
     @state() _queueTracks: any[] = [];
     @state() _queueLoading: boolean = false;
+    @state() _queueCurrentIndex: number = -1;
     @state() _activeFilter: number = 0;
     @state() _popupOpen: boolean = false;
     @state() _popupLoading: boolean = false;
     @state() _popupItems: any[] = [];
     @state() _popupTitle: string = "";
+    @state() _categories: { label: string; item: any }[] = [];
+    @state() _searchOpen: boolean = false;
+    @state() _searchQuery: string = "";
+    @state() _searchType: string = "";
+    @state() _searchResults: any[] = [];
+    @state() _searchLoading: boolean = false;
     @state() _searchActive: boolean = false;
     @query("ytmusic-browser") _browser: any;
     private _rootItems: any[] = [];
@@ -118,9 +155,24 @@ export class YTMusicPlayingCard extends LitElement {
         }
     }
 
+    private get _isMA(): boolean {
+        return this._entity?.attributes?.app_id === "music_assistant";
+    }
+
+    private async _browseInto(item: any): Promise<any[]> {
+        const resp = await this._hass.callWS({
+            type: "media_player/browse_media",
+            entity_id: this._config.entity_id,
+            media_content_type: item?.media_content_type,
+            media_content_id: item?.media_content_id,
+        });
+        return (resp?.children || []).filter(
+            (el: any) => !el.media_content_id?.startsWith("MPSP")
+        );
+    }
+
     private async _loadRoot() {
         try {
-            // 1. Fetch root categories
             const rootResp = await this._hass.callWS({
                 type: "media_player/browse_media",
                 entity_id: this._config.entity_id,
@@ -128,33 +180,37 @@ export class YTMusicPlayingCard extends LitElement {
             this._rootItems = (rootResp?.children || []).filter(
                 (el: any) => !el.media_content_id?.startsWith("MPSP")
             );
-            console.log("[YTube] root items:", this._rootItems.map((i: any) => `${i.title} [${i.media_content_type}]`));
 
-            // 2. Cascade into "Home" to get its sections (for Scelte rapide etc.)
-            const homeItem = this._rootItems.find(
-                (item: any) => item.title?.toLowerCase() === "home"
-            ) || this._rootItems[0];
-            if (homeItem) {
-                try {
-                    const homeResp = await this._hass.callWS({
-                        type: "media_player/browse_media",
-                        entity_id: this._config.entity_id,
-                        media_content_type: homeItem.media_content_type,
-                        media_content_id: homeItem.media_content_id,
-                    });
-                    this._homeItems = (homeResp?.children || []).filter(
-                        (el: any) => !el.media_content_id?.startsWith("MPSP")
-                    );
-                } catch (e) {
-                    console.error("YTube: failed to load home sections", e);
+            if (this._isMA) {
+                // Music Assistant: keep only the music categories from the browse root,
+                // dropping HA media sources (Frigate, Camera, TTS, DLNA, …) and non-music
+                // MA sections (Podcasts, Audiobooks, …).
+                const MA_MUSIC = ["tracks", "playlists", "radio stations", "radios"];
+                this._categories = this._rootItems
+                    .filter((c: any) => c.can_expand && MA_MUSIC.includes((c.title ?? "").toLowerCase()))
+                    .map((c: any) => ({ label: _maCatLabel(c.title), item: c }));
+            } else {
+                // YouTube Music: cascade into Home, then resolve the curated filters
+                const homeItem = this._rootItems.find(
+                    (item: any) => item.title?.toLowerCase() === "home"
+                ) || this._rootItems[0];
+                if (homeItem) {
+                    try {
+                        this._homeItems = await this._browseInto(homeItem);
+                    } catch (e) {
+                        console.error("YTube: failed to load home sections", e);
+                    }
                 }
+                const lc = (s: string) => s?.toLowerCase() ?? "";
+                this._categories = YT_FILTERS.map((f: any, idx: number) => {
+                    const pool = f.source === "home" ? this._homeItems : this._rootItems;
+                    let target = pool.find((item: any) => lc(item.title).includes(f.titleKey));
+                    if (!target && idx === 0) target = this._rootItems[0];
+                    return { label: f.label, item: target };
+                }).filter((c: any) => c.item);
             }
-
-            await this.updateComplete;
-            if (this._browser) await this._browser.updateComplete;
-            this._navigateToFilter(this._activeFilter);
         } catch (e) {
-            console.error("YTube: failed to load root items", e);
+            console.error("YTMusic: failed to load root items", e);
         }
     }
 
@@ -169,30 +225,18 @@ export class YTMusicPlayingCard extends LitElement {
         if (target) this._browser.loadElement(target);
     }
 
-    private async _openChipPopup(index: number, filter: any) {
+    private async _openChipPopup(category: any, index: number) {
         this._activeFilter = index;
-        this._popupTitle = filter.label;
+        this._popupTitle = category.label;
         this._popupItems = [];
         this._popupOpen = true;
         this._popupLoading = true;
         try {
-            const pool = filter.source === "home" ? this._homeItems : this._rootItems;
-            const lc = (s: string) => s?.toLowerCase() ?? "";
-            let target = pool.find((item: any) => lc(item.title).includes(filter.titleKey));
-            if (!target && index === 0) target = this._rootItems[0];
-            if (target) {
-                const resp = await this._hass.callWS({
-                    type: "media_player/browse_media",
-                    entity_id: this._config.entity_id,
-                    media_content_type: target.media_content_type,
-                    media_content_id: target.media_content_id,
-                });
-                this._popupItems = (resp?.children || []).filter(
-                    (el: any) => !el.media_content_id?.startsWith("MPSP")
-                );
+            if (category.item) {
+                this._popupItems = await this._browseInto(category.item);
             }
         } catch (e) {
-            console.error("YTube: chip popup load failed", e);
+            console.error("YTMusic: chip popup load failed", e);
         }
         this._popupLoading = false;
     }
@@ -206,10 +250,153 @@ export class YTMusicPlayingCard extends LitElement {
         this._popupOpen = false;
     }
 
+    private async _doSearch() {
+        const q = this._searchQuery.trim();
+        if (!q) { this._searchResults = []; return; }
+        this._searchLoading = true;
+        try {
+            if (this._isMA) {
+                // Music Assistant native search (music_assistant.search) — richer results
+                // grouped by type. config_entry_id is derived from the entity registry so
+                // this works on any installation.
+                const configEntryId = this._hass.entities?.[this._config.entity_id]?.config_entry_id;
+                if (configEntryId) {
+                    const service_data: any = { config_entry_id: configEntryId, name: q, limit: 20 };
+                    if (this._searchType) service_data.media_type = [this._searchType];
+                    const res: any = await this._hass.callWS({
+                        type: "call_service",
+                        domain: "music_assistant",
+                        service: "search",
+                        service_data,
+                        return_response: true,
+                    });
+                    const r = res?.response || {};
+                    const typeToGroup: Record<string, string> = {
+                        track: "tracks", album: "albums", artist: "artists",
+                        playlist: "playlists", radio: "radio",
+                    };
+                    const groups = this._searchType
+                        ? [typeToGroup[this._searchType]]
+                        : ["tracks", "artists", "albums", "playlists", "radio"];
+                    const items: any[] = [];
+                    for (const g of groups) {
+                        for (const it of (r[g] || [])) {
+                            const artist = it.artists?.[0]?.name;
+                            items.push({
+                                title: artist ? `${artist} - ${it.name}` : it.name,
+                                thumbnail: it.image || "",
+                                media_content_id: it.uri,
+                                media_content_type: it.media_type,
+                            });
+                        }
+                    }
+                    this._searchResults = items;
+                } else {
+                    // fallback for setups without an entity->config_entry mapping
+                    const service_data: any = { entity_id: this._config.entity_id, search_query: q };
+                    if (this._searchType) service_data.media_filter_classes = [this._searchType];
+                    const res: any = await this._hass.callWS({
+                        type: "call_service", domain: "media_player", service: "search_media",
+                        service_data, return_response: true,
+                    });
+                    const r = res?.response?.[this._config.entity_id];
+                    this._searchResults = (r?.result || []).filter(
+                        (el: any) => !el.media_content_id?.startsWith("MPSP")
+                    );
+                }
+            } else {
+                // YouTube Music: ytube_music_player.search action, then browse the results.
+                const ytFilter: Record<string, string> = {
+                    track: "songs", album: "albums", artist: "artists", playlist: "playlists",
+                };
+                const data: any = { entity_id: this._config.entity_id, query: q, limit: 40 };
+                const f = ytFilter[this._searchType];
+                if (f) data.filter = f;
+                await this._hass.callService("ytube_music_player", "search", data);
+                const r: any = await this._hass.callWS({
+                    type: "media_player/browse_media",
+                    entity_id: this._config.entity_id,
+                    media_content_type: "search",
+                    media_content_id: "",
+                });
+                this._searchResults = (r?.children || []).filter(
+                    (el: any) => !el.media_content_id?.startsWith("MPSP")
+                );
+            }
+        } catch (e) {
+            console.error("YTMusic: search failed", e);
+            this._searchResults = [];
+        }
+        this._searchLoading = false;
+    }
+
+    private _setSearchType(v: string) {
+        this._searchType = v;
+        if (this._searchQuery.trim()) this._doSearch();
+    }
+
+    private _cleanTitle(t: string): string {
+        return (t || "").replace(/^(Track|Album|Artist|Playlist|Radio|Video|Brano|Artista|Brani):\s*/i, "");
+    }
+
+    private _playSearchItem(item: any) {
+        this._hass.callService("media_player", "play_media", {
+            entity_id: this._config.entity_id,
+            media_content_id: item.media_content_id,
+            media_content_type: item.media_content_type,
+        });
+        this._searchOpen = false;
+    }
+
+    _renderSearchPopup() {
+        const types = _searchTypes();
+        return html`
+            <div class="chip-popup-backdrop" @click=${() => { this._searchOpen = false; }}>
+                <div class="chip-popup" @click=${(e: Event) => e.stopPropagation()}>
+                    <div class="cp-handle"></div>
+                    <div class="cp-head">
+                        <input class="cp-search" type="text" placeholder="${getUILang() === "it" ? "Cerca…" : "Search…"}"
+                            .value=${this._searchQuery}
+                            @input=${(e: any) => { this._searchQuery = e.target.value; }}
+                            @keydown=${(e: KeyboardEvent) => { if (e.key === "Enter") this._doSearch(); }} />
+                        <button class="icon-btn" @click=${() => this._doSearch()}>
+                            <ha-icon icon="mdi:magnify"></ha-icon>
+                        </button>
+                        <button class="icon-btn" @click=${() => { this._searchOpen = false; }}>
+                            <ha-icon icon="mdi:close"></ha-icon>
+                        </button>
+                    </div>
+                    <div class="cp-types" @wheel=${this._onPillsWheel}>
+                        ${types.map((t) => html`
+                            <button class="fp-chip ${this._searchType === t.value ? "active" : ""}"
+                                @click=${() => this._setSearchType(t.value)}>${t.label}</button>`)}
+                    </div>
+                    ${this._searchLoading
+                        ? html`<div class="cp-msg"><ha-icon icon="mdi:loading" class="spin"></ha-icon></div>`
+                        : this._searchResults.length
+                            ? html`<div class="cp-list">
+                                ${this._searchResults.map((it: any) => html`
+                                    <div class="cp-item" @click=${() => this._playSearchItem(it)}>
+                                        ${it.thumbnail
+                                            ? html`<img class="cp-thumb" src="${it.thumbnail}">`
+                                            : html`<div class="cp-thumb cp-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
+                                        <div class="cp-info"><div class="cp-t">${this._cleanTitle(it.title)}</div></div>
+                                        <ha-icon icon="mdi:play" class="cp-play"></ha-icon>
+                                    </div>`)}
+                              </div>`
+                            : html`<div class="cp-msg">${this._searchQuery
+                                ? (getUILang() === "it" ? "Nessun risultato" : "No results")
+                                : (getUILang() === "it" ? "Digita per cercare" : "Type to search")}</div>`}
+                </div>
+            </div>
+        `;
+    }
+
     _renderChipPopup() {
         return html`
             <div class="chip-popup-backdrop" @click=${() => { this._popupOpen = false; }}>
                 <div class="chip-popup" @click=${(e: Event) => e.stopPropagation()}>
+                    <div class="cp-handle"></div>
                     <div class="cp-head">
                         <span class="cp-title">${this._popupTitle}</span>
                         <button class="icon-btn" @click=${() => { this._popupOpen = false; }}>
@@ -225,7 +412,7 @@ export class YTMusicPlayingCard extends LitElement {
                                         ${it.thumbnail
                                             ? html`<img class="cp-thumb" src="${it.thumbnail}">`
                                             : html`<div class="cp-thumb cp-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
-                                        <div class="cp-info"><div class="cp-t">${it.title}</div></div>
+                                        <div class="cp-info"><div class="cp-t">${this._cleanTitle(it.title)}</div></div>
                                         <ha-icon icon="mdi:play" class="cp-play"></ha-icon>
                                     </div>`)}
                               </div>`
@@ -246,6 +433,7 @@ export class YTMusicPlayingCard extends LitElement {
             <ha-card>
                 ${this._renderFullPlayer()}
                 ${this._popupOpen ? this._renderChipPopup() : nothing}
+                ${this._searchOpen ? this._renderSearchPopup() : nothing}
             </ha-card>
         `;
     }
@@ -366,6 +554,9 @@ export class YTMusicPlayingCard extends LitElement {
                     <div class="fp-header">
                         <span class="fp-logo">${YTLogoSVG}<b>Music</b></span>
                         <span class="fp-from">${_t("nowPlaying")}</span>
+                        <button class="icon-btn" @click=${() => { this._searchOpen = true; this._searchResults = []; }}>
+                            <ha-icon icon="mdi:magnify"></ha-icon>
+                        </button>
                         ${this._renderSourceSelector("full-player")}
                     </div>
                     <div class="fp-tabs">
@@ -373,16 +564,17 @@ export class YTMusicPlayingCard extends LitElement {
                             @click=${() => { this._showQueue = false; }}>
                             ${_t("tabPlay")}
                         </button>
+                        ${!this._isMA ? html`
                         <button class="fp-tab ${this._showQueue ? "active" : ""}"
                             @click=${() => { this._showQueue = true; this._fetchQueue(); }}>
                             ${_t("queue")}
-                        </button>
+                        </button>` : nothing}
                     </div>
                     <div class="fp-chips" @wheel=${this._onPillsWheel}>
-                        ${YT_FILTERS.map((f, i) => html`
+                        ${this._categories.map((c, i) => html`
                             <button class="fp-chip ${this._activeFilter === i ? "active" : ""}"
-                                @click=${() => this._openChipPopup(i, f)}
-                            >${f.label}</button>`)}
+                                @click=${() => this._openChipPopup(c, i)}
+                            >${c.label}</button>`)}
                     </div>
                     ${this._showQueue ? this._renderQueue() : html`
                         <div class="fp-art-wrap">
@@ -406,26 +598,69 @@ export class YTMusicPlayingCard extends LitElement {
         `;
     }
 
-    _fetchQueue() {
+    async _fetchQueue() {
         if (!this._entity || this._entity.state === "off") return;
         this._queueLoading = true;
-        this._hass.callWS({
-            type: "media_player/browse_media",
-            entity_id: this._config.entity_id,
-            media_content_type: "cur_playlists",
-            media_content_id: "",
-        }).then((r: any) => {
+        this._queueTracks = [];
+
+        if (this._isMA) {
+            // Music Assistant: get the active queue via the music_assistant.get_queue action.
+            try {
+                const res: any = await this._hass.callWS({
+                    type: "call_service",
+                    domain: "music_assistant",
+                    service: "get_queue",
+                    target: { entity_id: this._config.entity_id },
+                    return_response: true,
+                });
+                const q = res?.response?.[this._config.entity_id];
+                this._queueCurrentIndex = q?.current_index ?? -1;
+                this._queueTracks = (q?.items || []).map((it: any) => {
+                    const mi = it.media_item || {};
+                    const artist = mi.artists?.[0]?.name || "";
+                    const name = mi.name || it.name || "";
+                    return {
+                        title: artist ? `${artist} - ${name}` : name,
+                        thumbnail: mi.image || "",
+                    };
+                });
+            } catch (e) {
+                console.error("[MA queue] get_queue failed", e);
+                this._queueTracks = [];
+            }
+            this._queueLoading = false;
+            return;
+        }
+
+        // YouTube Music (ytube_music_player)
+        try {
+            const r: any = await this._hass.callWS({
+                type: "media_player/browse_media",
+                entity_id: this._config.entity_id,
+                media_content_type: "cur_playlists",
+                media_content_id: "",
+            });
             this._queueTracks = (r && r.children) ? r.children : [];
-            this._queueLoading = false;
-        }).catch(() => {
+        } catch (e) {
             this._queueTracks = [];
-            this._queueLoading = false;
+        }
+        this._queueLoading = false;
+    }
+
+    private _queueItemClick(i: number) {
+        if (this._isMA) return; // MA queue is view-only for now
+        this._hass.callService("ytube_music_player", "call_method", {
+            entity_id: this._config.entity_id,
+            command: "goto_track",
+            parameters: i + 1,
         });
     }
 
     _renderQueue() {
-        const currentTrack = (this._entity?.attributes?.current_track !== undefined)
-            ? this._entity.attributes.current_track : -1;
+        const currentTrack = this._isMA
+            ? this._queueCurrentIndex
+            : (this._entity?.attributes?.current_track !== undefined
+                ? this._entity.attributes.current_track : -1);
 
         if (this._queueLoading) return html`
             <div class="fp-queue-loading">
@@ -446,13 +681,7 @@ export class YTMusicPlayingCard extends LitElement {
                     const isCurrent = i === currentTrack;
                     return html`
                         <div class="fp-queue-item ${isCurrent ? "current" : ""}"
-                            @click=${() => {
-                                this._hass.callService("ytube_music_player", "call_method", {
-                                    entity_id: this._config.entity_id,
-                                    command: "goto_track",
-                                    parameters: i + 1,
-                                });
-                            }}>
+                            @click=${() => this._queueItemClick(i)}>
                             ${thumb
                                 ? html`<img class="fp-qi-thumb" src="${thumb}">`
                                 : html`<div class="fp-qi-thumb-ph"><ha-icon icon="mdi:music"></ha-icon></div>`}
@@ -940,39 +1169,51 @@ export class YTMusicPlayingCard extends LitElement {
                 animation: cp-fade 0.15s ease;
             }
             @keyframes cp-fade { from { opacity: 0; } to { opacity: 1; } }
+            .chip-popup, .chip-popup * { box-sizing: border-box; }
             .chip-popup {
                 width: 100%;
-                max-height: 80%;
-                background: rgba(22, 22, 22, 0.78);
-                backdrop-filter: blur(14px);
-                -webkit-backdrop-filter: blur(14px);
-                border-radius: 18px 18px 0 0;
-                border-top: 1px solid rgba(255,255,255,0.08);
-                padding: 14px 14px 18px;
+                height: 70%;
+                max-width: 100%;
+                background: rgba(20, 20, 20, 0.9);
+                backdrop-filter: blur(18px);
+                -webkit-backdrop-filter: blur(18px);
+                border-radius: 20px 20px 0 0;
+                border-top: 1px solid rgba(255,255,255,0.12);
+                padding: 10px 14px 18px;
                 display: flex;
                 flex-direction: column;
                 box-shadow: 0 -12px 40px rgba(0,0,0,0.55);
                 animation: cp-slide 0.2s ease;
+            }
+            .cp-handle {
+                width: 42px;
+                height: 4px;
+                border-radius: 2px;
+                background: rgba(255,255,255,0.3);
+                margin: 2px auto 10px;
+                flex-shrink: 0;
             }
             @keyframes cp-slide { from { transform: translateY(30px); } to { transform: translateY(0); } }
             .cp-head {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
+                gap: 8px;
                 margin-bottom: 8px;
                 flex-shrink: 0;
             }
             .cp-title { font-size: 16px; font-weight: 700; color: var(--yt-text); }
-            .cp-list { overflow-y: auto; }
-            .cp-list::-webkit-scrollbar { width: 0; }
+            .cp-list { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+            .cp-list::-webkit-scrollbar { width: 0; display: none; }
             .cp-item {
                 display: flex;
                 align-items: center;
                 gap: 12px;
-                padding: 8px 4px;
+                padding: 8px 8px;
                 border-radius: 8px;
                 cursor: pointer;
             }
+            .cp-play { margin-right: 2px; }
             .cp-item:hover { background: rgba(255,255,255,0.06); }
             .cp-thumb {
                 width: 46px;
@@ -998,7 +1239,36 @@ export class YTMusicPlayingCard extends LitElement {
                 text-overflow: ellipsis;
             }
             .cp-play { color: var(--yt-red, #ff0000); flex-shrink: 0; }
-            .cp-msg { padding: 34px; text-align: center; color: var(--yt-text2); }
+            .cp-msg {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 34px;
+                text-align: center;
+                color: var(--yt-text2);
+            }
+            .cp-search {
+                flex: 1;
+                min-width: 0;
+                background: rgba(255,255,255,0.08);
+                border: none;
+                border-radius: 10px;
+                padding: 9px 12px;
+                color: var(--yt-text);
+                font-size: 14px;
+                outline: none;
+            }
+            .cp-types {
+                display: flex;
+                gap: 8px;
+                overflow-x: auto;
+                justify-content: safe center;
+                padding: 6px 8px 10px;
+                flex-shrink: 0;
+                scrollbar-width: none;
+            }
+            .cp-types::-webkit-scrollbar { display: none; }
 
             .fp-tab {
                 background: none;
