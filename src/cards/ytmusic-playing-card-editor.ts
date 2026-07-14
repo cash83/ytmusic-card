@@ -8,7 +8,7 @@ function editorLang(): "it" | "en" {
 
 // Boolean feature flags shown as switches. All default ON, so we fill defaults
 // into the form data to keep the switches in sync with the real behavior.
-const BOOL_FLAGS = ["show_search", "show_queue", "queue_actions", "enqueue_menu", "media_browser", "players", "show_chips", "cover_animation", "cover_glow"];
+const BOOL_FLAGS = ["show_search", "show_queue", "queue_actions", "enqueue_menu", "media_browser", "players", "favorites", "follow_active", "show_chips", "cover_animation", "cover_glow"];
 
 const LABELS: Record<string, Record<string, string>> = {
     it: {
@@ -21,6 +21,8 @@ const LABELS: Record<string, Record<string, string>> = {
         enqueue_menu: "Menu Aggiungi/Riproduci (ricerca e categorie)",
         media_browser: "Browser avanzato (Consigliati/Recenti/Libreria)",
         players: "Casse multi-room (raggruppa + volume)",
+        favorites: "Tasto preferito sul brano corrente",
+        follow_active: "Segui la cassa attiva (dopo il trasferimento)",
         show_chips: "Mostra chip categorie",
         cover_animation: "Anima copertina (ondeggia)",
         cover_glow: "Alone colorato dietro la copertina",
@@ -37,6 +39,8 @@ const LABELS: Record<string, Record<string, string>> = {
         enqueue_menu: "Add/Play menu (search & categories)",
         media_browser: "Advanced browser (Recommendations/Recent/Library)",
         players: "Multi-room players (group + volume)",
+        favorites: "Favorite button on current track",
+        follow_active: "Follow the active player (after transfer)",
         show_chips: "Show category chips",
         cover_animation: "Animate cover (undulate)",
         cover_glow: "Colored halo behind the cover",

@@ -123,6 +123,202 @@ export class YTMusicPlayingCard extends LitElement {
     private _homeItems: any[] = [];
     private _rootLoaded = false;
 
+    // --- Active-player following (Music Assistant) ---------------------------------
+    // After a queue transfer the configured player goes idle and playback moves to
+    // another MA player (each MA player keeps its own queue id, so the two are not
+    // linked by attributes). Track the active player so the card keeps showing and
+    // controlling whatever is really playing, like the Music Assistant app does.
+    // YouTube Music (and any non-MA player) is never followed; the configured entity
+    // is always used. Disable with `follow_active: false` in the card config.
+    @state() private _followId: string | null = null;
+    // Favorite state of the currently playing track (Music Assistant).
+    @state() private _curFav: boolean = false;
+    private _curFavLibId: string | null = null;
+    private _favTrackId: string | null = null;
+    // Group volume (0..1) shown in the players popup when a group is active.
+    @state() private _groupVolume: number | null = null;
+    private _massQueueCfg: string | null = null;
+
+    // The entity the card currently reflects and controls. After a transfer this is
+    // the target player; otherwise it is the configured entity.
+    private get _pid(): string {
+        return this._entity?.entity_id || this._config.entity_id;
+    }
+
+    private _maLive(id: string): boolean {
+        const s = this._hass?.states?.[id];
+        return !!(s && (s.state === "playing" || s.state === "paused" || s.state === "buffering"));
+    }
+
+    // MA players (respecting the optional `speakers` whitelist) that are currently
+    // playing. Used to mirror a transfer/playback started outside the card.
+    private _maPlayingCandidates(): string[] {
+        const states = this._hass?.states || {};
+        const ents = this._hass?.entities || {};
+        const sp = this._config.speakers;
+        const explicit = Array.isArray(sp) && sp.length > 0;
+        const out: string[] = [];
+        for (const [id, st] of Object.entries<any>(states)) {
+            if (!id.startsWith("media_player.")) continue;
+            if ((st as any).state !== "playing") continue;
+            const isMA = (st as any).attributes?.mass_player_type !== undefined
+                || ents[id]?.platform === "music_assistant";
+            if (!isMA) continue;
+            if (explicit && !sp.includes(id)) continue;
+            out.push(id);
+        }
+        return out;
+    }
+
+    // Resolve which entity the card binds to on each hass update.
+    private _pickActive(): string {
+        const cfg = this._config.entity_id;
+        const cfgState = this._hass?.states?.[cfg];
+        // Only Music Assistant players follow. YT Music / others stay on the config entity.
+        const cfgIsMA = cfgState?.attributes?.mass_player_type !== undefined;
+        if (!cfgIsMA) return cfg;
+        // 1. Card-initiated transfer target that is alive wins.
+        if (this._followId && this._followId !== cfg && this._maLive(this._followId)) return this._followId;
+        // 2. Configured player is alive again (e.g. transferred back) → snap back to it.
+        if (this._maLive(cfg)) { this._followId = null; return cfg; }
+        // 3. Transfer just happened, target not playing yet but present → show it in the gap.
+        if (this._followId && this._hass?.states?.[this._followId]) return this._followId;
+        // 4. Mirror a transfer/playback started outside the card, when unambiguous.
+        if (this._feat("follow_active")) {
+            const playing = this._maPlayingCandidates();
+            if (playing.length === 1) return playing[0];
+        }
+        return cfg;
+    }
+
+    // --- Favorite current track (Music Assistant) ----------------------------------
+    // Favorites go through the companion `mass_queue` integration:
+    //   add    -> send_command music/favorites/add_item { item: <uri> }
+    //   remove -> send_command music/favorites/remove_item { media_type, library_item_id }
+    // The current-track favorite state and its library id are read from get_library
+    // (favorite=true, filtered by the track name). The stock `unfavorite_current_item`
+    // service is unreliable on some servers, so we resolve the id and use remove_item.
+    private async _getMassQueueCfg(): Promise<string | null> {
+        if (this._massQueueCfg) return this._massQueueCfg;
+        try {
+            const res: any = await this._hass.callWS({ type: "config_entries/get", domain: "mass_queue" });
+            const entries: any[] = Array.isArray(res) ? res : (res?.entries || res?.data || []);
+            const entry = entries.find((e: any) => e.domain === "mass_queue") || entries[0];
+            const id = entry && (entry.entry_id || entry.entryId || entry.id);
+            if (id) { this._massQueueCfg = id; return id; }
+        } catch (e) { /* mass_queue not installed */ }
+        return null;
+    }
+
+    // Is the currently playing item a track we can favorite?
+    private _canFavorite(): boolean {
+        const uri = this._entity?.attributes?.media_content_id;
+        return this._isMA && this._feat("favorites") && !!uri && /\/track\//.test(uri);
+    }
+
+    // Refresh the heart state whenever the playing track changes.
+    private _maybeRefreshFav() {
+        if (!this._isMA || !this._feat("favorites")) { this._curFav = false; return; }
+        const uri = this._entity?.attributes?.media_content_id;
+        if (!uri || !/\/track\//.test(uri)) {
+            this._curFav = false; this._curFavLibId = null; this._favTrackId = uri || null;
+            return;
+        }
+        if (uri === this._favTrackId) return;
+        this._favTrackId = uri;
+        this._refreshFav(uri);
+    }
+
+    private async _resolveFavLibId(name: string): Promise<string | null> {
+        const maCfg = await this._getMAConfigEntryId(this._pid);
+        if (!maCfg) return null;
+        const res: any = await this._hass.callWS({
+            type: "call_service", domain: "music_assistant", service: "get_library",
+            service_data: { config_entry_id: maCfg, media_type: "track", favorite: true, search: name },
+            return_response: true,
+        });
+        const items: any[] = res?.response?.items || [];
+        const match = items.find((it: any) => (it.name || "").toLowerCase() === (name || "").toLowerCase());
+        return match ? (String(match.uri || "").split("/").pop() || null) : null;
+    }
+
+    private async _refreshFav(uri: string) {
+        const name = this._entity?.attributes?.media_title;
+        if (!name) return;
+        try {
+            const libId = await this._resolveFavLibId(name);
+            // A newer track may have started while we awaited — ignore stale result.
+            if (this._entity?.attributes?.media_content_id !== uri) return;
+            this._curFav = !!libId;
+            this._curFavLibId = libId;
+        } catch (e) {
+            this._curFav = false; this._curFavLibId = null;
+        }
+    }
+
+    private async _toggleFavorite(ev?: Event) {
+        ev?.stopPropagation();
+        const uri = this._entity?.attributes?.media_content_id;
+        const name = this._entity?.attributes?.media_title;
+        if (!uri) return;
+        const mqCfg = await this._getMassQueueCfg();
+        if (!mqCfg) return;
+        const wasFav = this._curFav;
+        this._curFav = !wasFav; // optimistic
+        try {
+            if (!wasFav) {
+                await this._hass.callService("mass_queue", "send_command", {
+                    config_entry_id: mqCfg, command: "music/favorites/add_item", data: { item: uri },
+                });
+                // Resolve the new library id (needed for a later un-favorite).
+                setTimeout(async () => {
+                    if (this._entity?.attributes?.media_content_id === uri) {
+                        this._curFavLibId = await this._resolveFavLibId(name);
+                    }
+                }, 800);
+            } else {
+                const libId = this._curFavLibId || await this._resolveFavLibId(name);
+                if (libId) {
+                    await this._hass.callService("mass_queue", "send_command", {
+                        config_entry_id: mqCfg, command: "music/favorites/remove_item",
+                        data: { media_type: "track", library_item_id: libId },
+                    });
+                    this._curFavLibId = null;
+                }
+            }
+        } catch (e) {
+            console.error("YTMusic: toggle favorite failed", e);
+            this._curFav = wasFav; // revert optimistic state
+        }
+    }
+
+    // --- Group volume (Music Assistant, via mass_queue) ----------------------------
+    private _openPlayers() {
+        this._playersOpen = true;
+        this._refreshGroupVolume();
+    }
+
+    private async _refreshGroupVolume() {
+        this._groupVolume = null;
+        if (!this._isMA) return;
+        try {
+            const res: any = await this._hass.callWS({
+                type: "call_service", domain: "mass_queue", service: "get_group_volume",
+                service_data: { entity: this._pid }, return_response: true,
+            });
+            const v = res?.response?.volume_level;
+            if (typeof v === "number") this._groupVolume = Math.max(0, Math.min(1, v / 100));
+        } catch (e) { this._groupVolume = null; }
+    }
+
+    private _setGroupVolume(v: number, ev: Event) {
+        ev.stopPropagation();
+        this._groupVolume = v;
+        this._hass.callService("mass_queue", "set_group_volume", {
+            entity: this._pid, volume_level: Math.round(v * 100),
+        });
+    }
+
     static getConfigElement() {
         return document.createElement("ytmusic-playing-card-editor");
     }
@@ -149,10 +345,11 @@ export class YTMusicPlayingCard extends LitElement {
 
     set hass(hass) {
         this._hass = hass;
-        const newEntity = this._hass["states"][this._config["entity_id"]];
+        const newEntity = this._hass["states"][this._pickActive()];
         if (!areDeeplyEqual(this._entity, newEntity, [])) {
             this._entity = structuredClone(newEntity);
         }
+        this._maybeRefreshFav();
     }
 
     protected updated(changedProps: PropertyValueMap<any>) {
@@ -177,7 +374,7 @@ export class YTMusicPlayingCard extends LitElement {
     private async _browseInto(item: any): Promise<any[]> {
         const resp = await this._hass.callWS({
             type: "media_player/browse_media",
-            entity_id: this._config.entity_id,
+            entity_id: this._pid,
             media_content_type: item?.media_content_type,
             media_content_id: item?.media_content_id,
         });
@@ -190,7 +387,7 @@ export class YTMusicPlayingCard extends LitElement {
         try {
             const rootResp = await this._hass.callWS({
                 type: "media_player/browse_media",
-                entity_id: this._config.entity_id,
+                entity_id: this._pid,
             });
             this._rootItems = (rootResp?.children || []).filter(
                 (el: any) => !el.media_content_id?.startsWith("MPSP")
@@ -289,7 +486,7 @@ export class YTMusicPlayingCard extends LitElement {
         if (kind === "recommendations") {
             const res: any = await this._hass.callWS({
                 type: "call_service", domain: "mass_queue", service: "get_recommendations",
-                service_data: { entity: this._config.entity_id }, return_response: true,
+                service_data: { entity: this._pid }, return_response: true,
             });
             const folders = res?.response?.response || res?.response || [];
             return (Array.isArray(folders) ? folders : []).map((f: any) => {
@@ -304,7 +501,7 @@ export class YTMusicPlayingCard extends LitElement {
             });
         }
         if (kind === "recent") {
-            const cfg = await this._getMAConfigEntryId(this._config.entity_id);
+            const cfg = await this._getMAConfigEntryId(this._pid);
             const res: any = await this._hass.callWS({
                 type: "call_service", domain: "music_assistant", service: "get_library",
                 service_data: { config_entry_id: cfg, media_type: "track", order_by: "last_played_desc", limit: 100 },
@@ -314,7 +511,7 @@ export class YTMusicPlayingCard extends LitElement {
         }
         if (kind === "library") {
             // Show the saved library collections by type (lazy-loaded on drill-in).
-            const cfg = await this._getMAConfigEntryId(this._config.entity_id);
+            const cfg = await this._getMAConfigEntryId(this._pid);
             const mk = (type: string, label: string, icon: string) => ({
                 title: label, folderIcon: icon,
                 load: { domain: "music_assistant", service: "get_library",
@@ -367,7 +564,7 @@ export class YTMusicPlayingCard extends LitElement {
         }
         // Leaf → play it.
         this._hass.callService("media_player", "play_media", {
-            entity_id: this._config.entity_id,
+            entity_id: this._pid,
             media_content_id: item.media_content_id,
             media_content_type: item.media_content_type,
         });
@@ -403,7 +600,7 @@ export class YTMusicPlayingCard extends LitElement {
                 // Music Assistant native search (music_assistant.search) — richer results
                 // grouped by type. config_entry_id is resolved (registry + fallback) so
                 // this works on any installation.
-                const configEntryId = await this._getMAConfigEntryId(this._config.entity_id);
+                const configEntryId = await this._getMAConfigEntryId(this._pid);
                 if (configEntryId) {
                     const service_data: any = { config_entry_id: configEntryId, name: q, limit: 20 };
                     if (this._searchType) service_data.media_type = [this._searchType];
@@ -437,13 +634,13 @@ export class YTMusicPlayingCard extends LitElement {
                     this._searchResults = items;
                 } else {
                     // fallback for setups without an entity->config_entry mapping
-                    const service_data: any = { entity_id: this._config.entity_id, search_query: q };
+                    const service_data: any = { entity_id: this._pid, search_query: q };
                     if (this._searchType) service_data.media_filter_classes = [this._searchType];
                     const res: any = await this._hass.callWS({
                         type: "call_service", domain: "media_player", service: "search_media",
                         service_data, return_response: true,
                     });
-                    const r = res?.response?.[this._config.entity_id];
+                    const r = res?.response?.[this._pid];
                     this._searchResults = (r?.result || []).filter(
                         (el: any) => !el.media_content_id?.startsWith("MPSP")
                     );
@@ -453,13 +650,13 @@ export class YTMusicPlayingCard extends LitElement {
                 const ytFilter: Record<string, string> = {
                     track: "songs", album: "albums", artist: "artists", playlist: "playlists",
                 };
-                const data: any = { entity_id: this._config.entity_id, query: q, limit: 40 };
+                const data: any = { entity_id: this._pid, query: q, limit: 40 };
                 const f = ytFilter[this._searchType];
                 if (f) data.filter = f;
                 await this._hass.callService("ytube_music_player", "search", data);
                 const r: any = await this._hass.callWS({
                     type: "media_player/browse_media",
-                    entity_id: this._config.entity_id,
+                    entity_id: this._pid,
                     media_content_type: "search",
                     media_content_id: "",
                 });
@@ -485,7 +682,7 @@ export class YTMusicPlayingCard extends LitElement {
 
     private _playSearchItem(item: any) {
         this._hass.callService("media_player", "play_media", {
-            entity_id: this._config.entity_id,
+            entity_id: this._pid,
             media_content_id: item.media_content_id,
             media_content_type: item.media_content_type,
         });
@@ -516,7 +713,7 @@ export class YTMusicPlayingCard extends LitElement {
         this._enqueueItem = null;
         if (!item) return;
         const data: any = {
-            entity_id: this._config.entity_id,
+            entity_id: this._pid,
             media_id: item.media_content_id,
             media_type: item.media_content_type,
         };
@@ -686,7 +883,7 @@ export class YTMusicPlayingCard extends LitElement {
             }
             out.push({ id, state: s.state, attributes: s.attributes });
         }
-        const master = this._config.entity_id;
+        const master = this._pid;
         out.sort((a, b) => {
             if (a.id === master) return -1;
             if (b.id === master) return 1;
@@ -699,7 +896,7 @@ export class YTMusicPlayingCard extends LitElement {
 
     private _togglePlayerGroup(p: any, ev: Event) {
         ev.stopPropagation();
-        const masterId = this._config.entity_id;
+        const masterId = this._pid;
         if (p.id === masterId) return;
         const masterGroup: string[] = this._entity?.attributes?.group_members || [];
         if (masterGroup.includes(p.id)) {
@@ -716,7 +913,7 @@ export class YTMusicPlayingCard extends LitElement {
 
     private _renderPlayersPopup() {
         const it = getUILang() === "it";
-        const masterId = this._config.entity_id;
+        const masterId = this._pid;
         const masterGroup: string[] = this._entity?.attributes?.group_members || [];
         const players = this._maPlayers();
         return html`
@@ -731,6 +928,14 @@ export class YTMusicPlayingCard extends LitElement {
                             <ha-icon icon="mdi:close"></ha-icon>
                         </button>
                     </div>
+                    ${!this._transferMode && masterGroup.length && this._groupVolume !== null ? html`
+                        <div class="pl-groupvol">
+                            <ha-icon icon="mdi:speaker-multiple"></ha-icon>
+                            <span class="pl-gv-label">${it ? "Volume gruppo" : "Group volume"}</span>
+                            <input type="range" min="0" max="1" step="0.01" .value=${String(this._groupVolume)}
+                                @change=${(e: any) => this._setGroupVolume(parseFloat(e.target.value), e)}
+                                @click=${(e: Event) => e.stopPropagation()} />
+                        </div>` : nothing}
                     <div class="cp-list">
                         ${players.map((p) => {
                             const isMaster = p.id === masterId;
@@ -773,7 +978,7 @@ export class YTMusicPlayingCard extends LitElement {
     // --- Queue options menu (clear / transfer for MA, turn off for YT) ---
     private _clearQueue() {
         this._queueMenuOpen = false;
-        this._hass.callService("media_player", "clear_playlist", { entity_id: this._config.entity_id });
+        this._hass.callService("media_player", "clear_playlist", { entity_id: this._pid });
         setTimeout(() => { if (this._showQueue) this._fetchQueue(); }, 600);
     }
 
@@ -786,15 +991,18 @@ export class YTMusicPlayingCard extends LitElement {
     private _transferQueueTo(targetId: string) {
         this._transferMode = false;
         this._playersOpen = false;
+        // Follow the target so the card doesn't go dark after the queue moves.
+        this._followId = targetId;
         this._hass.callService("music_assistant", "transfer_queue", {
             entity_id: targetId,
-            source_player: this._config.entity_id,
+            source_player: this._pid,
+            auto_play: true,
         });
     }
 
     private _turnOff() {
         this._queueMenuOpen = false;
-        this._hass.callService("media_player", "turn_off", { entity_id: this._config.entity_id });
+        this._hass.callService("media_player", "turn_off", { entity_id: this._pid });
     }
 
     private _renderQueueMenu() {
@@ -894,7 +1102,7 @@ export class YTMusicPlayingCard extends LitElement {
         return html`
             <div class="source-wrap">
                 <button class="icon-btn cast-btn" @click=${(e: Event) => {
-                    if (this._isMA && this._feat("players")) { e.stopPropagation(); this._playersOpen = true; }
+                    if (this._isMA && this._feat("players")) { e.stopPropagation(); this._openPlayers(); }
                     else { this._toggleMenu(e, menuId); }
                 }}>
                     ${CastAudioIcon}
@@ -1003,10 +1211,16 @@ export class YTMusicPlayingCard extends LitElement {
                                 : html`<div class="fp-art-ph ${animate ? "playing" : ""}"><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
                         </div>
                         <div class="fp-info">
-                            <div>
+                            <div class="fp-info-txt">
                                 <div class="fp-title">${title}</div>
                                 <div class="fp-artist">${artist}</div>
                             </div>
+                            ${this._canFavorite() ? html`
+                                <button class="fp-fav ${this._curFav ? "on" : ""}"
+                                    title="${getUILang() === "it" ? "Preferito" : "Favorite"}"
+                                    @click=${(e: Event) => this._toggleFavorite(e)}>
+                                    <ha-icon icon="${this._curFav ? "mdi:heart" : "mdi:heart-outline"}"></ha-icon>
+                                </button>` : nothing}
                         </div>
                         <ytmusic-media-control
                             .hass=${this._hass}
@@ -1036,10 +1250,10 @@ export class YTMusicPlayingCard extends LitElement {
                     service: "get_queue_items",
                     // Window around the current item: a little history + everything upcoming,
                     // so the playing track stays near the top instead of after the whole history.
-                    service_data: { entity: this._config.entity_id, limit_before: 3, limit_after: 400 },
+                    service_data: { entity: this._pid, limit_before: 3, limit_after: 400 },
                     return_response: true,
                 });
-                const list: any[] = res?.response?.[this._config.entity_id] || [];
+                const list: any[] = res?.response?.[this._pid] || [];
                 const curId = this._entity?.attributes?.media_content_id;
                 this._queueCurrentIndex = list.findIndex((it) => it.media_content_id === curId);
                 this._queueTracks = list.map((it: any) => ({
@@ -1054,10 +1268,10 @@ export class YTMusicPlayingCard extends LitElement {
                         type: "call_service",
                         domain: "music_assistant",
                         service: "get_queue",
-                        target: { entity_id: this._config.entity_id },
+                        target: { entity_id: this._pid },
                         return_response: true,
                     });
-                    const q = res?.response?.[this._config.entity_id];
+                    const q = res?.response?.[this._pid];
                     const items = [q?.current_item, q?.next_item].filter(Boolean);
                     this._queueCurrentIndex = q?.current_item ? 0 : -1;
                     this._queueTracks = items.map((it: any) => {
@@ -1082,7 +1296,7 @@ export class YTMusicPlayingCard extends LitElement {
         try {
             const r: any = await this._hass.callWS({
                 type: "media_player/browse_media",
-                entity_id: this._config.entity_id,
+                entity_id: this._pid,
                 media_content_type: "cur_playlists",
                 media_content_id: "",
             });
@@ -1099,7 +1313,7 @@ export class YTMusicPlayingCard extends LitElement {
             const qid = this._queueTracks?.[i]?.queue_item_id;
             if (qid === undefined) return; // fallback source (current+next) is view-only
             this._hass.callService("mass_queue", "play_queue_item", {
-                entity: this._config.entity_id,
+                entity: this._pid,
                 queue_item_id: qid,
             });
             // Optimistically highlight the tapped track, then re-sync once MA switches.
@@ -1109,7 +1323,7 @@ export class YTMusicPlayingCard extends LitElement {
             return;
         }
         this._hass.callService("ytube_music_player", "call_method", {
-            entity_id: this._config.entity_id,
+            entity_id: this._pid,
             command: "goto_track",
             parameters: i + 1,
         });
@@ -1121,7 +1335,7 @@ export class YTMusicPlayingCard extends LitElement {
         if (!qid) return;
         try {
             await this._hass.callService("mass_queue", service, {
-                entity: this._config.entity_id,
+                entity: this._pid,
                 queue_item_id: qid,
             });
         } catch (e) {
@@ -1240,20 +1454,20 @@ export class YTMusicPlayingCard extends LitElement {
         this._menuOpen = null;
         if (source === "" || source === currentSource) return;
         this._hass.callService("media_player", "select_source", {
-            entity_id: this._config.entity_id,
+            entity_id: this._pid,
             source: source,
         });
     }
 
     async _togglePlayPause() {
         this._hass.callService("media_player", "media_play_pause", {
-            entity_id: this._config.entity_id,
+            entity_id: this._pid,
         });
     }
 
     async _skipNext() {
         this._hass.callService("media_player", "media_next_track", {
-            entity_id: this._config.entity_id,
+            entity_id: this._pid,
         });
     }
 
@@ -1635,6 +1849,22 @@ export class YTMusicPlayingCard extends LitElement {
                 margin-top: 2px;
             }
 
+            .fp-info-txt { flex: 1; min-width: 0; }
+            .fp-fav {
+                flex-shrink: 0;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 6px;
+                margin-left: 8px;
+                color: var(--yt-text2);
+                --mdc-icon-size: 26px;
+                transition: color 0.15s, transform 0.15s;
+            }
+            .fp-fav:hover { color: var(--yt-text); }
+            .fp-fav.on { color: var(--yt-red, #ff0000); }
+            .fp-fav.on:active { transform: scale(1.2); }
+
             /* ── FULL PLAYER TABS ── */
             .fp-tabs {
                 display: flex;
@@ -1881,6 +2111,28 @@ export class YTMusicPlayingCard extends LitElement {
             .enq-opt ha-icon { color: var(--yt-text2); flex-shrink: 0; }
             .enq-opt:hover { background: rgba(255,255,255,0.08); }
             .enq-opt:hover ha-icon { color: var(--yt-red, #ff0000); }
+
+            .pl-groupvol {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 8px;
+                margin-bottom: 6px;
+                border-radius: 12px;
+                background: rgba(255,0,0,0.10);
+                color: var(--yt-text);
+                --mdc-icon-size: 22px;
+            }
+            .pl-gv-label { font-size: 13px; font-weight: 700; white-space: nowrap; }
+            .pl-groupvol input[type="range"] {
+                flex: 1;
+                height: 4px;
+                -webkit-appearance: none;
+                appearance: none;
+                background: rgba(255,255,255,0.2);
+                border-radius: 2px;
+                accent-color: var(--yt-red, #ff0000);
+            }
 
             .pl-row {
                 display: flex;
