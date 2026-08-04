@@ -31,6 +31,13 @@ export class YTMusicMediaControl extends LitElement {
     @state() private _repeatActive: boolean | undefined = undefined;
     @state() private _shuffleActive: boolean | undefined = undefined;
     @state() private _pct: number = 0;
+    // Optimistic volume while dragging: the visible bar is drawn from the entity's
+    // volume_level, which MA/Cast players report late — without this the fill lags
+    // and the thumb snaps back to the stale value on every hass update mid-drag.
+    @state() private _volLocal: number | undefined = undefined;
+    private _volClearTimer: number | undefined;
+    private _volSendTimer: number | undefined;
+    private _volPending: number | undefined;
     tracker: any;
     @property() progressTime: string;
 
@@ -65,7 +72,7 @@ export class YTMusicMediaControl extends LitElement {
         const playing = this.entity?.state === "playing";
         const totalTime = secondsToMMSS(this.entity?.attributes?.media_duration);
         const pct = Math.max(0, Math.min(100, this._pct));
-        const vol = Math.round((this.entity?.attributes?.volume_level ?? 0) * 100);
+        const vol = this._volLocal ?? Math.round((this.entity?.attributes?.volume_level ?? 0) * 100);
         const muted = !!this.entity?.attributes?.is_volume_muted;
         const isMA = this.entity?.attributes?.app_id === "music_assistant";
 
@@ -143,10 +150,26 @@ export class YTMusicMediaControl extends LitElement {
 
     private _changeVolumeInput(ev: Event) {
         const v = Number((ev.target as HTMLInputElement).value);
-        this.hass.callService("media_player", "volume_set", {
-            entity_id: this.entity["entity_id"],
-            volume_level: v / 100,
-        });
+        // Drive the bar from the drag immediately; fall back to the entity value
+        // once it has had time to catch up.
+        this._volLocal = v;
+        clearTimeout(this._volClearTimer);
+        this._volClearTimer = window.setTimeout(() => {
+            this._volLocal = undefined;
+            this.requestUpdate();
+        }, 1500);
+        // input fires for every pixel of the drag: coalesce the service calls,
+        // always sending the latest value.
+        this._volPending = v;
+        if (this._volSendTimer === undefined) {
+            this._volSendTimer = window.setTimeout(() => {
+                this._volSendTimer = undefined;
+                this.hass.callService("media_player", "volume_set", {
+                    entity_id: this.entity["entity_id"],
+                    volume_level: (this._volPending as number) / 100,
+                });
+            }, 150);
+        }
     }
 
     async _changeRepeat() {

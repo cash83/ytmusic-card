@@ -40,12 +40,37 @@ export class YTMusicSearchCard extends LitElement {
         if (!areDeeplyEqual(this._entity, newEntity, [])) {
             this._entity = structuredClone(newEntity);
         }
+        // The header volume may mirror a followed MA player, not _entity: re-render
+        // when that player's volume state moves.
+        const tgt = this._volTarget();
+        const sig = tgt ? `${tgt.entity_id}|${tgt.attributes?.volume_level}|${tgt.attributes?.is_volume_muted}` : "";
+        if (sig !== this._volSig) {
+            this._volSig = sig;
+            this.requestUpdate();
+        }
+    }
+    private _volSig = "";
+
+    // The player the header volume should control. After a transfer the configured
+    // entity goes idle, so target the single live Music Assistant player instead
+    // (same follow rule as the playing card, reduced to the unambiguous case).
+    private _volTarget(): any {
+        const states = this._hass?.states || {};
+        const cfg = states[this._config.entity_id];
+        const live = (s: any) => s && ["playing", "paused", "buffering"].includes(s.state);
+        if (cfg?.attributes?.mass_player_type === undefined || live(cfg)) return cfg;
+        const ents = this._hass?.entities || {};
+        const playing = Object.entries<any>(states).filter(([id, st]) =>
+            id.startsWith("media_player.") && st.state === "playing"
+            && (st.attributes?.mass_player_type !== undefined || ents[id]?.platform === "music_assistant"));
+        return playing.length === 1 ? playing[0][1] : cfg;
     }
 
     render() {
-        const vol = this._entity?.attributes?.volume_level;
+        const tgt = this._volTarget();
+        const vol = tgt?.attributes?.volume_level;
         const curVol = vol != null ? Math.round(vol * 100) : 50;
-        const muted = this._entity?.attributes?.is_volume_muted;
+        const muted = tgt?.attributes?.is_volume_muted;
 
         return html`
             <ha-card>
@@ -141,16 +166,18 @@ export class YTMusicSearchCard extends LitElement {
 
     _onVolumeChange(e: Event) {
         const val = Number((e.target as HTMLInputElement).value);
+        const tgt = this._volTarget();
         this._hass.callService("media_player", "volume_set", {
-            entity_id: this._config.entity_id,
+            entity_id: tgt?.entity_id || this._config.entity_id,
             volume_level: val / 100,
         });
     }
 
     async _toggleMute() {
+        const tgt = this._volTarget();
         this._hass.callService("media_player", "volume_mute", {
-            entity_id: this._config.entity_id,
-            is_volume_muted: !this._entity?.attributes?.is_volume_muted,
+            entity_id: tgt?.entity_id || this._config.entity_id,
+            is_volume_muted: !tgt?.attributes?.is_volume_muted,
         });
     }
 
