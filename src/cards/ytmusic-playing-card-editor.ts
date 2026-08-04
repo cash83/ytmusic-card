@@ -8,7 +8,7 @@ function editorLang(): "it" | "en" {
 
 // Boolean feature flags shown as switches. All default ON, so we fill defaults
 // into the form data to keep the switches in sync with the real behavior.
-const BOOL_FLAGS = ["show_search", "show_queue", "queue_actions", "enqueue_menu", "media_browser", "players", "favorites", "follow_active", "show_chips", "cover_animation", "cover_glow"];
+const BOOL_FLAGS = ["show_search", "show_queue", "queue_actions", "enqueue_menu", "media_browser", "players", "favorites", "follow_active", "show_chips", "cover_animation", "cover_glow", "fs_visualizer"];
 
 const LABELS: Record<string, Record<string, string>> = {
     it: {
@@ -26,6 +26,7 @@ const LABELS: Record<string, Record<string, string>> = {
         show_chips: "Mostra chip categorie",
         cover_animation: "Anima copertina (ondeggia)",
         cover_glow: "Alone colorato dietro la copertina",
+        fs_visualizer: "Animazioni Winamp a schermo intero (OFF = copertina normale)",
         anim_speed: "Velocità animazione copertina (secondi)",
         glow_size: "Dimensione alone (%)",
     },
@@ -44,6 +45,7 @@ const LABELS: Record<string, Record<string, string>> = {
         show_chips: "Show category chips",
         cover_animation: "Animate cover (undulate)",
         cover_glow: "Colored halo behind the cover",
+        fs_visualizer: "Fullscreen Winamp visualizer (OFF = normal cover)",
         anim_speed: "Cover animation speed (seconds)",
         glow_size: "Halo size (%)",
     },

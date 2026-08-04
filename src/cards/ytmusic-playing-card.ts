@@ -139,6 +139,250 @@ export class YTMusicPlayingCard extends LitElement {
     @state() private _groupVolume: number | null = null;
     private _massQueueCfg: string | null = null;
 
+    // Native fullscreen (button hidden where the API is unavailable, e.g. iOS).
+    @state() private _isFs: boolean = false;
+    // matches(":fullscreen") and not document.fullscreenElement: with HA's nested
+    // shadow roots the latter is retargeted to an ancestor host, never this card.
+    private _onFsChange = () => {
+        this._isFs = this.matches(":fullscreen");
+        if (this._isFs) this._startViz(); else this._stopViz();
+    };
+
+    // --- Winamp-style visualizer (fullscreen only) ----------------------------------
+    // Purely decorative: the audio plays on remote speakers, so there is no stream to
+    // analyze — everything is simulated, animated only while the player is playing.
+    // Tapping the visualizer cycles through the styles (persisted per browser),
+    // just like clicking the vis window in classic Winamp.
+    // "cover" is the original look: no spectrum, undulating cover like outside fullscreen.
+    static readonly VIZ_ORDER = ["bars", "solid", "wave", "mirror", "fire", "cover", "off"];
+    static readonly VIZ_NAMES: Record<string, [string, string]> = {
+        bars: ["SPETTRO", "SPECTRUM"],
+        solid: ["BARRE", "SOLID BARS"],
+        wave: ["ONDA", "WAVE"],
+        mirror: ["SPECCHIO", "MIRROR"],
+        fire: ["FUOCO", "FIRE"],
+        cover: ["ONDEGGIO", "COVER"],
+        off: ["SPENTO", "OFF"],
+    };
+    @state() private _vizStyle: string = "bars";
+    private _vizLabelUntil = 0;
+    private _vizRaf = 0;
+    private _vizLast = 0;
+    private _vizV: number[] = [];
+    private _vizP: number[] = [];
+    private _vizN: number[] = [];
+
+    private _cycleViz(e: Event) {
+        e.stopPropagation();
+        const order = (this.constructor as typeof YTMusicPlayingCard).VIZ_ORDER;
+        this._vizStyle = order[(order.indexOf(this._vizStyle) + 1) % order.length];
+        this._vizLabelUntil = performance.now() + 1500;
+        try { localStorage.setItem("ytmusic-card-viz", this._vizStyle); } catch { /* private mode */ }
+    }
+
+    private _startViz() {
+        if (!this._vizRaf) this._vizRaf = requestAnimationFrame(this._vizFrame);
+    }
+
+    private _stopViz() {
+        if (this._vizRaf) { cancelAnimationFrame(this._vizRaf); this._vizRaf = 0; }
+    }
+
+    private _vizFrame = (t: number) => {
+        this._vizRaf = 0;
+        if (!this._isFs || !this.isConnected) return;
+        const canvas = this.shadowRoot?.querySelector(".fp-viz") as HTMLCanvasElement | null;
+        if (canvas && t - this._vizLast > 33) {
+            this._vizLast = t;
+            this._drawViz(canvas);
+        }
+        this._vizRaf = requestAnimationFrame(this._vizFrame);
+    };
+
+    private _drawViz(canvas: HTMLCanvasElement) {
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        if (!w || !h) return;
+        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.clearRect(0, 0, w, h);
+        const now = performance.now();
+        const playing = this._entity?.state === "playing";
+        // Slow "energy" envelope so the whole visualization breathes like a song
+        // does, instead of every element twitching independently.
+        const env = 0.55 + 0.45 * Math.abs(Math.sin(now * 0.0011)) * (0.7 + 0.3 * Math.sin(now * 0.00023));
+        switch (this._vizStyle) {
+            case "bars": this._drawBars(ctx, w, h, playing, env); break;
+            case "solid": this._drawSolid(ctx, w, h, playing, env); break;
+            case "wave": this._drawWave(ctx, w, h, playing, env); break;
+            case "mirror": this._drawMirror(ctx, w, h, playing, env); break;
+            case "fire": this._drawFire(ctx, w, h, playing, env); break;
+        }
+        if (now < this._vizLabelUntil) {
+            const names = (this.constructor as typeof YTMusicPlayingCard).VIZ_NAMES[this._vizStyle];
+            ctx.font = "bold 13px monospace";
+            ctx.fillStyle = "#aaffaa";
+            // Centered: the top-left corner is occupied by the mini cover.
+            ctx.textAlign = "center";
+            ctx.fillText(names ? names[getUILang() === "it" ? 0 : 1] : "", w / 2, 18);
+            ctx.textAlign = "left";
+        }
+    }
+
+    // Shared simulated spectrum: random walk per bar + neighbor smoothing gives a
+    // coherent shape; center bias bulges the mids like real music.
+    private _vizLevels(N: number, playing: boolean, env: number): number[] {
+        if (this._vizV.length !== N) {
+            this._vizV = new Array(N).fill(0);
+            this._vizP = new Array(N).fill(0);
+            this._vizN = new Array(N).fill(0.4);
+        }
+        const n = this._vizN, v = this._vizV, p = this._vizP;
+        for (let i = 0; i < N; i++) n[i] = Math.min(1, Math.max(0, n[i] + (Math.random() - 0.5) * 0.34));
+        for (let i = 0; i < N; i++) {
+            const sm = (n[(i + N - 1) % N] + 2 * n[i] + n[(i + 1) % N]) / 4;
+            const bias = 0.55 + 0.45 * (1 - Math.abs(i - N / 2) / (N / 2));
+            const target = playing ? Math.min(1, sm * bias * env * 1.5) : 0;
+            v[i] = target > v[i] ? v[i] + (target - v[i]) * 0.5 : Math.max(0, v[i] - 0.05);
+            p[i] = Math.max(p[i] - 0.015, v[i]);
+        }
+        return v;
+    }
+
+    private _vizColor(ratio: number): string {
+        return ratio < 0.55 ? "#22cc44" : ratio < 0.8 ? "#f0d030" : "#f23333";
+    }
+
+    private _drawBars(ctx: CanvasRenderingContext2D, w: number, h: number, playing: boolean, env: number) {
+        const N = 48;
+        const v = this._vizLevels(N, playing, env), p = this._vizP;
+        const bw = w / N, seg = 4, gap = 1;
+        for (let i = 0; i < N; i++) {
+            const x = i * bw;
+            const barH = v[i] * h;
+            for (let y = 0; y + seg <= barH; y += seg + gap) {
+                ctx.fillStyle = this._vizColor(y / h);
+                ctx.fillRect(x, h - y - seg, bw - 2, seg);
+            }
+            if (p[i] > 0.02) {
+                ctx.fillStyle = "#cfcfcf";
+                ctx.fillRect(x, h - p[i] * h - 2, bw - 2, 2);
+            }
+        }
+    }
+
+    private _drawSolid(ctx: CanvasRenderingContext2D, w: number, h: number, playing: boolean, env: number) {
+        const N = 48;
+        const v = this._vizLevels(N, playing, env), p = this._vizP;
+        const bw = w / N;
+        const g = ctx.createLinearGradient(0, h, 0, 0);
+        g.addColorStop(0, "#22cc44");
+        g.addColorStop(0.6, "#f0d030");
+        g.addColorStop(1, "#f23333");
+        ctx.fillStyle = g;
+        for (let i = 0; i < N; i++) {
+            const barH = v[i] * h;
+            ctx.fillRect(i * bw + 1, h - barH, bw - 2, barH);
+        }
+        ctx.fillStyle = "#ffffff";
+        for (let i = 0; i < N; i++) {
+            if (p[i] > 0.02) ctx.fillRect(i * bw + 1, h - p[i] * h - 2, bw - 2, 2);
+        }
+    }
+
+    private _drawWave(ctx: CanvasRenderingContext2D, w: number, h: number, playing: boolean, env: number) {
+        const N = 64;
+        const v = this._vizLevels(N, playing, env);
+        const g = ctx.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, "rgba(34,220,68,0.85)");
+        g.addColorStop(1, "rgba(34,220,68,0.05)");
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        ctx.lineTo(0, h - v[0] * h * 0.9);
+        for (let i = 1; i < N; i++) {
+            const x0 = ((i - 1) / (N - 1)) * w, x1 = (i / (N - 1)) * w;
+            const y0 = h - v[i - 1] * h * 0.9, y1 = h - v[i] * h * 0.9;
+            ctx.quadraticCurveTo(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2);
+        }
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        ctx.fillStyle = g;
+        ctx.fill();
+        ctx.strokeStyle = "#22dd44";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    private _drawMirror(ctx: CanvasRenderingContext2D, w: number, h: number, playing: boolean, env: number) {
+        const N = 48;
+        const v = this._vizLevels(N, playing, env);
+        const bw = w / N, mid = h / 2;
+        for (let i = 0; i < N; i++) {
+            const x = i * bw;
+            const bh = v[i] * mid;
+            ctx.fillStyle = this._vizColor(v[i]);
+            ctx.fillRect(x + 1, mid - bh, bw - 2, bh);
+            ctx.globalAlpha = 0.55;
+            ctx.fillRect(x + 1, mid, bw - 2, bh);
+            ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.fillRect(0, mid - 1, w, 2);
+    }
+
+
+    private _drawFire(ctx: CanvasRenderingContext2D, w: number, h: number, playing: boolean, env: number) {
+        const N = 48;
+        const v = this._vizLevels(N, playing, env);
+        const bw = w / N;
+        const g = ctx.createLinearGradient(0, h, 0, 0);
+        g.addColorStop(0, "#801100");
+        g.addColorStop(0.35, "#ff3300");
+        g.addColorStop(0.7, "#ff9900");
+        g.addColorStop(1, "#ffe45c");
+        ctx.fillStyle = g;
+        for (let i = 0; i < N; i++) {
+            const flick = playing ? 0.85 + Math.random() * 0.15 : 1;
+            const barH = v[i] * h * flick;
+            ctx.fillRect(i * bw, h - barH, bw - 1, barH);
+        }
+        if (playing) {
+            ctx.fillStyle = "#ffb84d";
+            for (let i = 0; i < N; i++) {
+                if (Math.random() < 0.12 && v[i] > 0.15) {
+                    ctx.fillRect(i * bw + Math.random() * bw, h - v[i] * h - 4 - Math.random() * 14, 2, 2);
+                }
+            }
+        }
+    }
+
+
+
+
+
+    connectedCallback() {
+        super.connectedCallback();
+        // Both targets: some WebViews only fire the event on the element itself.
+        document.addEventListener("fullscreenchange", this._onFsChange);
+        this.addEventListener("fullscreenchange", this._onFsChange);
+        try {
+            const s = localStorage.getItem("ytmusic-card-viz");
+            if (s && (this.constructor as typeof YTMusicPlayingCard).VIZ_ORDER.includes(s)) this._vizStyle = s;
+        } catch { /* private mode */ }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        document.removeEventListener("fullscreenchange", this._onFsChange);
+        this.removeEventListener("fullscreenchange", this._onFsChange);
+        this._stopViz();
+    }
+
+    private _toggleFullscreen() {
+        if (this.matches(":fullscreen")) document.exitFullscreen?.();
+        else this.requestFullscreen?.().catch(() => {});
+    }
+
     // The entity the card currently reflects and controls. After a transfer this is
     // the target player; otherwise it is the configured entity.
     private get _pid(): string {
@@ -1039,7 +1283,7 @@ export class YTMusicPlayingCard extends LitElement {
 
     render() {
         return html`
-            <ha-card>
+            <ha-card class="${this._isFs ? "fs" : ""}">
                 ${this._renderFullPlayer()}
                 ${this._popupOpen ? this._renderChipPopup() : nothing}
                 ${this._searchOpen ? this._renderSearchPopup() : nothing}
@@ -1161,6 +1405,13 @@ export class YTMusicPlayingCard extends LitElement {
         const title = this._entity?.attributes?.media_title || "Sconosciuto";
         const artist = this._entity?.attributes?.media_artist || "";
         const playing = this._entity?.state === "playing";
+        // Fullscreen with an active visualizer style: the cover shrinks to the top
+        // left and the animation owns the whole art area — no overlap. With the
+        // fs_visualizer flag off (card config) or the "cover"/"off" styles, the
+        // fullscreen keeps the normal big undulating cover.
+        const vizOn = this._isFs && this._feat("fs_visualizer");
+        const vizActive = vizOn && this._vizStyle !== "cover" && this._vizStyle !== "off";
+        // The cover keeps its own animation even when shrunk next to the visualizer.
         const animate = playing && this._feat("cover_animation");
         const glow = playing && this._feat("cover_glow");
         const animS = this._config.anim_speed ?? 6;
@@ -1178,6 +1429,11 @@ export class YTMusicPlayingCard extends LitElement {
                         ${this._feat("show_search") ? html`
                         <button class="icon-btn" @click=${() => { this._searchOpen = true; }}>
                             <ha-icon icon="mdi:magnify"></ha-icon>
+                        </button>` : nothing}
+                        ${document.fullscreenEnabled ? html`
+                        <button class="icon-btn" title="${getUILang() === "it" ? "Schermo intero" : "Fullscreen"}"
+                            @click=${() => this._toggleFullscreen()}>
+                            <ha-icon icon="${this._isFs ? "mdi:fullscreen-exit" : "mdi:fullscreen"}"></ha-icon>
                         </button>` : nothing}
                         ${this._renderSourceSelector("full-player")}
                     </div>
@@ -1206,9 +1462,15 @@ export class YTMusicPlayingCard extends LitElement {
                     ${this._showQueue ? this._renderQueue() : html`
                         <div class="fp-art-wrap">
                             <div class="fp-glow ${glow ? "on" : ""}"></div>
+                            ${vizOn ? html`<canvas class="fp-viz"
+                                title="${getUILang() === "it" ? "Cambia visualizzazione" : "Change visualization"}"
+                                @click=${(e: Event) => this._cycleViz(e)}></canvas>` : nothing}
                             ${art
-                                ? html`<img class="fp-art ${animate ? "playing" : ""}" src="${art}">`
-                                : html`<div class="fp-art-ph ${animate ? "playing" : ""}"><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
+                                ? html`<img class="fp-art clickable ${animate ? "playing" : ""} ${vizActive ? "dimmed" : ""}" src="${art}"
+                                    title="${getUILang() === "it" ? "Schermo intero" : "Fullscreen"}"
+                                    @click=${() => this._toggleFullscreen()}>`
+                                : html`<div class="fp-art-ph clickable ${animate ? "playing" : ""} ${vizActive ? "dimmed" : ""}"
+                                    @click=${() => this._toggleFullscreen()}><ha-icon icon="mdi:music-note" style="--mdc-icon-size:80px"></ha-icon></div>`}
                         </div>
                         <div class="fp-info">
                             <div class="fp-info-txt">
@@ -1494,6 +1756,35 @@ export class YTMusicPlayingCard extends LitElement {
                 position: relative;
                 border-radius: 12px;
                 color: var(--yt-text);
+            }
+
+            /* Native fullscreen: the host element fills the screen, the card follows.
+               The .fs class (driven by the fullscreenchange listener) doubles the
+               :host(:fullscreen) selector, which some WebViews fail to match. */
+            /* No explicit width/height on the host: the UA sizes the fullscreen
+               element to the real screen. Any vw/vh here overflows on foldables,
+               whose WebView reports viewport units larger than the cover screen. */
+            :host(:fullscreen) {
+                background: #000;
+            }
+
+            :host(:fullscreen) ha-card,
+            ha-card.fs {
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+            }
+
+            /* All three properties matter here. margin:auto on a flex child disables
+               stretch and sizes it to its widest row (a long title overflows the
+               screen), so width:100% forces it back to the container; border-box
+               keeps the 40px of padding inside that width instead of past the edge. */
+            :host(:fullscreen) .fp-content,
+            ha-card.fs .fp-content {
+                width: 100%;
+                max-width: 640px;
+                margin: 0 auto;
+                box-sizing: border-box;
             }
 
             /* ── HEADER ── */
@@ -1798,6 +2089,28 @@ export class YTMusicPlayingCard extends LitElement {
                 box-shadow: 0 8px 40px rgba(0,0,0,0.6);
                 aspect-ratio: 1/1;
                 object-fit: cover;
+            }
+
+            .fp-art.clickable, .fp-art-ph.clickable { cursor: pointer; }
+
+            /* Active visualizer: the cover stays centered but fades back, so the
+               animation behind it shows through. */
+            .fp-art, .fp-art-ph { transition: opacity 0.4s ease; }
+            .fp-art.dimmed, .fp-art-ph.dimmed { opacity: 0.3; }
+
+            /* Winamp-style visualizer, behind the cover (fullscreen only): full
+               art-area height, so it shows around the cover instead of hiding
+               under it. Clickable: tapping it cycles the styles. */
+            .fp-viz {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 0;
+                opacity: 0.85;
+                cursor: pointer;
             }
 
             .fp-art-ph {
@@ -2412,10 +2725,41 @@ export class YTMusicPlayingCard extends LitElement {
                 border-radius: 8px;
                 box-shadow: 0 8px 24px rgba(0,0,0,0.5);
                 min-width: 200px;
+                max-width: calc(100vw - 24px);
                 max-height: 280px;
                 overflow-y: auto;
                 overscroll-behavior: contain;
                 border: 1px solid rgba(255,255,255,0.1);
+            }
+
+            /* Narrow screens (phones/folds): the right-anchored dropdown ends up glued
+               to the screen edge — center it under the header instead. Un-positioning
+               .source-wrap makes .full-player the containing block. */
+            @media (max-width: 600px) {
+                .source-wrap { position: static; }
+
+                .full-player .source-menu {
+                    top: 56px;
+                    left: 50%;
+                    right: auto;
+                    transform: translateX(-50%);
+                    min-width: 240px;
+                }
+            }
+
+            /* Fullscreen: fp-content is centered, so a menu anchored to the right edge
+               drifts away from it (Fold cover screens report >600px, so the media query
+               above cannot be relied on). Always center the menu under the header. */
+            :host(:fullscreen) .source-wrap,
+            ha-card.fs .source-wrap { position: static; }
+
+            :host(:fullscreen) .full-player .source-menu,
+            ha-card.fs .full-player .source-menu {
+                top: 56px;
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                min-width: 240px;
             }
 
             .menu-item {
