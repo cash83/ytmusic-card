@@ -41,9 +41,14 @@ export const isNumeric = (num: any) =>
     !isNaN(num as number);
 
 export function secondsToMMSS(seconds: number) {
-    if (seconds == undefined) return "0:00";
+    if (seconds == undefined || isNaN(seconds)) return "0:00";
 
-    return new Date(seconds * 1000).toISOString().substring(14, 19);
+    // ISO is "…THH:MM:SS…": keep the hours once the track passes one hour,
+    // otherwise long mixes show minutes mod 60 (1:27:49 became "27:49").
+    const iso = new Date(seconds * 1000).toISOString();
+    if (seconds >= 36000) return iso.substring(11, 19);
+    if (seconds >= 3600) return iso.substring(12, 19);
+    return iso.substring(14, 19);
 }
 
 export function areDeeplyEqual(obj1, obj2, ignoreKeys) {
