@@ -389,6 +389,17 @@ export class YTMusicPlayingCard extends LitElement {
         return this._entity?.entity_id || this._config.entity_id;
     }
 
+    // In Music Assistant the queue belongs to the group leader (the first entry
+    // of group_members); a member's own queue is empty. Grouping and queue
+    // transfers must therefore be addressed to the leader, not to whichever
+    // player the card happens to be bound to, or MA rejects them
+    // ("The data provided is invalid or could not be processed").
+    private _queueOwner(id?: string): string {
+        const who = id || this._pid;
+        const group: string[] = this._hass?.states?.[who]?.attributes?.group_members || [];
+        return group.length ? group[0] : who;
+    }
+
     private _maLive(id: string): boolean {
         const s = this._hass?.states?.[id];
         return !!(s && (s.state === "playing" || s.state === "paused" || s.state === "buffering"));
@@ -1146,7 +1157,9 @@ export class YTMusicPlayingCard extends LitElement {
         if (masterGroup.includes(p.id)) {
             this._hass.callService("media_player", "unjoin", { entity_id: p.id });
         } else {
-            this._hass.callService("media_player", "join", { entity_id: masterId, group_members: [p.id] });
+            // join through the queue owner: masterId may itself be a group member
+            this._hass.callService("media_player", "join",
+                { entity_id: this._queueOwner(masterId), group_members: [p.id] });
         }
     }
 
@@ -1239,7 +1252,7 @@ export class YTMusicPlayingCard extends LitElement {
         this._followId = targetId;
         this._hass.callService("music_assistant", "transfer_queue", {
             entity_id: targetId,
-            source_player: this._pid,
+            source_player: this._queueOwner(),
             auto_play: true,
         });
     }
