@@ -116,6 +116,9 @@ export class YTMusicPlayingCard extends LitElement {
     @state() _searchActive: boolean = false;
     @state() _enqueueItem: any = null;
     @state() _playersOpen: boolean = false;
+    // While the speakers popup is open the card must follow every listed
+    // player, not just its own: volume and mute of the others change under it.
+    @state() private _playersSig: string = "";
     @state() _queueMenuOpen: boolean = false;
     @state() _transferMode: boolean = false;
     @query("ytmusic-browser") _browser: any;
@@ -553,24 +556,23 @@ export class YTMusicPlayingCard extends LitElement {
         this._refreshGroupVolume();
     }
 
+    // The group volume is the LEADER's volume: that is what Music Assistant
+    // shows on its own player bar, and setting it makes MA scale the members.
+    //
+    // It used to go through mass_queue.get_group_volume / set_group_volume,
+    // but on Music Assistant 2.9.11 the getter answers HTTP 500, so
+    // _groupVolume stayed null and the whole row silently disappeared.
     private async _refreshGroupVolume() {
-        this._groupVolume = null;
-        if (!this._isMA) return;
-        try {
-            const res: any = await this._hass.callWS({
-                type: "call_service", domain: "mass_queue", service: "get_group_volume",
-                service_data: { entity: this._pid }, return_response: true,
-            });
-            const v = res?.response?.volume_level;
-            if (typeof v === "number") this._groupVolume = Math.max(0, Math.min(1, v / 100));
-        } catch (e) { this._groupVolume = null; }
+        const leader = this._queueOwner();
+        const v = this._hass?.states?.[leader]?.attributes?.volume_level;
+        this._groupVolume = typeof v === "number" ? Math.max(0, Math.min(1, v)) : null;
     }
 
     private _setGroupVolume(v: number, ev: Event) {
         ev.stopPropagation();
         this._groupVolume = v;
-        this._hass.callService("mass_queue", "set_group_volume", {
-            entity: this._pid, volume_level: Math.round(v * 100),
+        this._hass.callService("media_player", "volume_set", {
+            entity_id: this._queueOwner(), volume_level: Math.round(v * 100) / 100,
         });
     }
 
@@ -605,6 +607,15 @@ export class YTMusicPlayingCard extends LitElement {
             this._entity = structuredClone(newEntity);
         }
         this._maybeRefreshFav();
+        if (this._playersOpen) {
+            const sig = this._maPlayers().map((p) => [p.id, p.state,
+                p.attributes.volume_level, p.attributes.is_volume_muted,
+                (p.attributes.group_members || []).join(",")].join(":")).join("|");
+            if (sig !== this._playersSig) {
+                this._playersSig = sig;
+                this._refreshGroupVolume();
+            }
+        }
     }
 
     protected updated(changedProps: PropertyValueMap<any>) {
@@ -1138,8 +1149,21 @@ export class YTMusicPlayingCard extends LitElement {
             }
             out.push({ id, state: s.state, attributes: s.attributes });
         }
+        // The leader first - it is the one holding the queue, and the one the
+        // list is really about - then the players bound to this card, then
+        // whatever is playing, then by name.
+        const leader = this._queueOwner();
         const master = this._pid;
+        // The group first, in one block: the leader, then the speakers joined
+        // to it. Scattering members among the ungrouped ones makes a group
+        // impossible to read.
+        const inGroup: string[] = this._hass?.states?.[leader]?.attributes?.group_members || [];
+        const grouped = (id: string) => (id === leader || inGroup.includes(id) ? 0 : 1);
         out.sort((a, b) => {
+            if (a.id === leader) return -1;
+            if (b.id === leader) return 1;
+            const ag = grouped(a.id), bg = grouped(b.id);
+            if (ag !== bg) return ag - bg;
             if (a.id === master) return -1;
             if (b.id === master) return 1;
             const ap = a.state === "playing" ? 0 : 1, bp = b.state === "playing" ? 0 : 1;
@@ -1152,7 +1176,9 @@ export class YTMusicPlayingCard extends LitElement {
     private _togglePlayerGroup(p: any, ev: Event) {
         ev.stopPropagation();
         const masterId = this._pid;
-        if (p.id === masterId) return;
+        // A player can pull itself out of a group; only the queue owner has
+        // nowhere to go - unjoining it from its own group means nothing.
+        if (p.id === masterId && p.id === this._queueOwner()) return;
         const masterGroup: string[] = this._entity?.attributes?.group_members || [];
         if (masterGroup.includes(p.id)) {
             this._hass.callService("media_player", "unjoin", { entity_id: p.id });
@@ -1161,6 +1187,19 @@ export class YTMusicPlayingCard extends LitElement {
             this._hass.callService("media_player", "join",
                 { entity_id: this._queueOwner(masterId), group_members: [p.id] });
         }
+    }
+
+    private _togglePlayerMute(p: any, ev: Event) {
+        ev.stopPropagation();
+        // Read the mute state LIVE. The row objects are a snapshot taken when
+        // the popup was rendered, and the card only re-renders when its own
+        // player changes - so for any other speaker that snapshot goes stale
+        // and the button kept sending the same value: muted once, never
+        // unmutable again.
+        const now = this._hass?.states?.[p.id];
+        const muted = !!now?.attributes?.is_volume_muted;
+        this._hass.callService("media_player", "volume_mute",
+            { entity_id: p.id, is_volume_muted: !muted });
     }
 
     private _setPlayerVolume(p: any, v: number, ev: Event) {
@@ -1196,6 +1235,12 @@ export class YTMusicPlayingCard extends LitElement {
                     <div class="cp-list">
                         ${players.map((p) => {
                             const isMaster = p.id === masterId;
+                            // "Principale" is the group leader - the one holding the
+                            // queue (group_members[0]) - not merely the player this
+                            // card happens to be bound to. With the card following a
+                            // member the label landed on the wrong speaker, and
+                            // disagreed with Music Assistant's own UI.
+                            const isLeader = p.id === this._queueOwner();
                             const grouped = isMaster || masterGroup.includes(p.id);
                             const playing = p.state === "playing";
                             const vol = typeof p.attributes.volume_level === "number" ? p.attributes.volume_level : 0;
@@ -1206,23 +1251,39 @@ export class YTMusicPlayingCard extends LitElement {
                                     <div class="pl-info">
                                         <div class="pl-name">${p.attributes.friendly_name || p.id}</div>
                                         <div class="pl-vol">
-                                            <ha-icon icon="mdi:volume-medium"></ha-icon>
+                                            <button class="pl-mute ${p.attributes.is_volume_muted ? "muted" : ""}"
+                                                title=${p.attributes.is_volume_muted
+                                                    ? (it ? "Riattiva l'audio" : "Unmute")
+                                                    : (it ? "Silenzia" : "Mute")}
+                                                @click=${(e: Event) => this._togglePlayerMute(p, e)}>
+                                                <ha-icon icon="${p.attributes.is_volume_muted
+                                                    ? "mdi:volume-off" : "mdi:volume-medium"}"></ha-icon>
+                                            </button>
                                             <input type="range" min="0" max="1" step="0.01" .value=${String(vol)}
                                                 @change=${(e: any) => this._setPlayerVolume(p, parseFloat(e.target.value), e)}
                                                 @click=${(e: Event) => e.stopPropagation()} />
                                         </div>
                                     </div>
                                     ${this._transferMode
-                                        ? (isMaster
+                                        ? (isLeader
                                             ? html`<span class="pl-master">${it ? "Principale" : "Main"}</span>`
                                             : html`<ha-icon class="pl-arrow" icon="mdi:arrow-right-bold-circle"></ha-icon>`)
-                                        : (isMaster
+                                        // The "Main" label and the group button are two
+                                        // separate things: the leader must keep its button,
+                                        // or a group whose leader is not the card's own
+                                        // player can never be taken apart. Only the player
+                                        // this card is bound to has no button - it cannot
+                                        // ungroup itself from its own group.
+                                        : html`${isLeader
                                             ? html`<span class="pl-master">${it ? "Principale" : "Main"}</span>`
-                                            : html`<button class="pl-group ${grouped ? "on" : ""}"
+                                            : nothing}
+                                            ${!(isMaster && isLeader)
+                                            ? html`<button class="pl-group ${grouped ? "on" : ""}"
                                                 title=${grouped ? (it ? "Sgancia" : "Ungroup") : (it ? "Raggruppa" : "Group")}
                                                 @click=${(e: Event) => this._togglePlayerGroup(p, e)}>
                                                 <ha-icon icon="${grouped ? "mdi:link-variant" : "mdi:link-variant-plus"}"></ha-icon>
-                                            </button>`)}
+                                            </button>`
+                                            : nothing}`}
                                 </div>`;
                         })}
                         ${players.length === 0 ? html`<div class="cp-msg">${it ? "Nessuna cassa" : "No players"}</div>` : nothing}
@@ -2479,6 +2540,23 @@ export class YTMusicPlayingCard extends LitElement {
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
+            .pl-mute {
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                margin: 0;
+                flex: none;
+                cursor: pointer;
+                display: grid;
+                place-items: center;
+                width: 20px;
+                height: 20px;
+                color: inherit;
+                opacity: 0.75;
+            }
+            .pl-mute:hover { opacity: 1; }
+            .pl-mute.muted { color: var(--yt-red, #f00); opacity: 1; }
             .pl-vol {
                 display: flex;
                 align-items: center;
