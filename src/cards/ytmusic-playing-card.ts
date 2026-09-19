@@ -140,6 +140,8 @@ export class YTMusicPlayingCard extends LitElement {
     private _favTrackId: string | null = null;
     // Group volume (0..1) shown in the players popup when a group is active.
     @state() private _groupVolume: number | null = null;
+    private _nudgeTimer?: number;
+    private _nudgeTarget: number | null = null;
     private _massQueueCfg: string | null = null;
 
     // Native fullscreen (button hidden where the API is unavailable, e.g. iOS).
@@ -556,24 +558,126 @@ export class YTMusicPlayingCard extends LitElement {
         this._refreshGroupVolume();
     }
 
-    // The group volume is the LEADER's volume: that is what Music Assistant
-    // shows on its own player bar, and setting it makes MA scale the members.
+    // The group row is a fader of its own. It is not derived from the speakers:
+    // moving one speaker - the leader included - does not move it (with the
+    // loudest speaker or the leader as the group volume, raising the leader
+    // raised the "group" while the others stayed where they were). Moving it
+    // shifts every speaker of the group by the same amount, each from its own
+    // level, and the card computes and sends each speaker's level itself.
+    // Music Assistant's own group volume (mass_queue.set_group_volume) can not
+    // do this: it reads the level it is given against the loudest speaker.
     //
-    // It used to go through mass_queue.get_group_volume / set_group_volume,
-    // but on Music Assistant 2.9.11 the getter answers HTTP 500, so
-    // _groupVolume stayed null and the whole row silently disappeared.
-    private async _refreshGroupVolume() {
+    // The shift is applied to a snapshot of the levels, so a speaker taken down
+    // to 0 and back up returns to where it was. The snapshot is retaken as soon
+    // as a speaker is found where the fader did not put it (it was moved by
+    // itself). The fader position is kept per group (the set of members) in
+    // localStorage, and starts at the loudest speaker, so 0 silences them all.
+    private _groupKey(): string | null {
         const leader = this._queueOwner();
-        const v = this._hass?.states?.[leader]?.attributes?.volume_level;
-        this._groupVolume = typeof v === "number" ? Math.max(0, Math.min(1, v)) : null;
+        const members: string[] = this._hass?.states?.[leader]?.attributes?.group_members || [];
+        return members.length > 1 ? [...members].sort().join(",") : null;
+    }
+
+    private _groupLevels(): Record<string, number> {
+        const leader = this._queueOwner();
+        const members: string[] = this._hass?.states?.[leader]?.attributes?.group_members || [];
+        const out: Record<string, number> = {};
+        for (const id of members) {
+            const s = this._hass?.states?.[id];
+            if (!s || s.state === "off" || s.state === "unavailable") continue;
+            const v = s.attributes?.volume_level;
+            if (typeof v === "number") out[id] = v;
+        }
+        return out;
+    }
+
+    private _loadGroupFader(key: string): any {
+        try {
+            return JSON.parse(localStorage.getItem(`ytmusic-card-groupvol:${key}`) || "null");
+        } catch {
+            return null;
+        }
+    }
+
+    private _saveGroupFader(key: string, st: any) {
+        try {
+            localStorage.setItem(`ytmusic-card-groupvol:${key}`, JSON.stringify(st));
+        } catch {
+            // storage unavailable: the fader still works, it just is not remembered
+        }
+    }
+
+    private async _refreshGroupVolume() {
+        if (this._nudgeTarget != null) {
+            // presses not sent yet: the fader shows where they are taking it
+            this._groupVolume = this._nudgeTarget;
+            return;
+        }
+        const key = this._groupKey();
+        if (!key) {
+            this._groupVolume = null;
+            return;
+        }
+        let st = this._loadGroupFader(key);
+        if (!st || typeof st.f !== "number") {
+            const levels = Object.values(this._groupLevels());
+            if (!levels.length) {
+                this._groupVolume = null;
+                return;
+            }
+            st = { f: Math.max(...levels) };
+            this._saveGroupFader(key, st);
+        }
+        this._groupVolume = st.f;
+    }
+
+    // The - / + buttons move the group by exactly 1: a finger on the slider
+    // can not land on a 1-point change. Presses in quick succession go out as
+    // one move once they stop, so the speakers get one command, not a burst.
+    private _nudgeGroupVolume(step: number, ev: Event) {
+        ev.stopPropagation();
+        const from = this._nudgeTarget ?? this._groupVolume;
+        if (from === null) return;
+        const v = Math.max(0, Math.min(100, Math.round(from * 100) + step)) / 100;
+        this._nudgeTarget = v;
+        this._groupVolume = v;
+        clearTimeout(this._nudgeTimer);
+        this._nudgeTimer = window.setTimeout(() => {
+            this._nudgeTarget = null;
+            this._setGroupVolume(v, new Event("nudge"));
+        }, 350);
     }
 
     private _setGroupVolume(v: number, ev: Event) {
         ev.stopPropagation();
+        const key = this._groupKey();
+        if (!key) return;
+        const cur = this._groupLevels();
+        const ids = Object.keys(cur);
+        const st = this._loadGroupFader(key) || {};
+        const fromF: number = typeof st.f === "number" ? st.f : v;
+        // Keep the snapshot while every speaker is still where the fader left it.
+        // Right after a move the players have not reported their new level yet,
+        // so for a few seconds what was sent counts as where they are.
+        const sent: Record<string, number> = st.sent || {};
+        const sameSpeakers = !!st.snap && ids.length === Object.keys(st.snap).length
+            && ids.every((id) => id in st.snap && typeof sent[id] === "number");
+        const recent = typeof st.at === "number" && Date.now() - st.at < 3000;
+        const intact = sameSpeakers
+            && (recent || ids.every((id) => Math.abs(sent[id] - cur[id]) <= 0.02));
+        const snap: Record<string, number> = intact ? st.snap : cur;
+        const snapF: number = intact ? st.snapF : fromF;
+        const newSent: Record<string, number> = {};
+        for (const id of ids) {
+            const target = Math.round(Math.max(0, Math.min(1, snap[id] + (v - snapF))) * 100) / 100;
+            newSent[id] = target;
+            const now = intact && recent ? sent[id] : cur[id];
+            if (Math.abs(target - now) >= 0.005) {
+                this._hass.callService("media_player", "volume_set", { entity_id: id, volume_level: target });
+            }
+        }
         this._groupVolume = v;
-        this._hass.callService("media_player", "volume_set", {
-            entity_id: this._queueOwner(), volume_level: Math.round(v * 100) / 100,
-        });
+        this._saveGroupFader(key, { f: v, snap, snapF, sent: newSent, at: Date.now() });
     }
 
     static getConfigElement() {
@@ -1205,6 +1309,11 @@ export class YTMusicPlayingCard extends LitElement {
     private _setPlayerVolume(p: any, v: number, ev: Event) {
         ev.stopPropagation();
         this._hass.callService("media_player", "volume_set", { entity_id: p.id, volume_level: v });
+        // a speaker moved by itself: the group fader stays put, but its snapshot
+        // no longer holds and is retaken on the next group move
+        const key = this._groupKey();
+        const st = key ? this._loadGroupFader(key) : null;
+        if (key && st) this._saveGroupFader(key, { f: st.f });
     }
 
     private _renderPlayersPopup() {
@@ -1228,9 +1337,18 @@ export class YTMusicPlayingCard extends LitElement {
                         <div class="pl-groupvol">
                             <ha-icon icon="mdi:speaker-multiple"></ha-icon>
                             <span class="pl-gv-label">${it ? "Volume gruppo" : "Group volume"}</span>
+                            <button class="icon-btn pl-gv-btn" title=${it ? "Abbassa di 1" : "Down by 1"}
+                                @click=${(e: Event) => this._nudgeGroupVolume(-1, e)}>
+                                <ha-icon icon="mdi:minus"></ha-icon>
+                            </button>
                             <input type="range" min="0" max="1" step="0.01" .value=${String(this._groupVolume)}
                                 @change=${(e: any) => this._setGroupVolume(parseFloat(e.target.value), e)}
                                 @click=${(e: Event) => e.stopPropagation()} />
+                            <button class="icon-btn pl-gv-btn" title=${it ? "Alza di 1" : "Up by 1"}
+                                @click=${(e: Event) => this._nudgeGroupVolume(1, e)}>
+                                <ha-icon icon="mdi:plus"></ha-icon>
+                            </button>
+                            <span class="pl-gv-val">${Math.round(this._groupVolume * 100)}</span>
                         </div>` : nothing}
                     <div class="cp-list">
                         ${players.map((p) => {
@@ -2511,6 +2629,14 @@ export class YTMusicPlayingCard extends LitElement {
                 --mdc-icon-size: 22px;
             }
             .pl-gv-label { font-size: 13px; font-weight: 700; white-space: nowrap; }
+            .pl-gv-btn { padding: 4px; flex: none; }
+            .pl-gv-val {
+                min-width: 26px;
+                text-align: right;
+                font-size: 13px;
+                font-weight: 700;
+                font-variant-numeric: tabular-nums;
+            }
             .pl-groupvol input[type="range"] {
                 flex: 1;
                 height: 4px;
